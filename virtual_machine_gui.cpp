@@ -54,6 +54,10 @@ VirtualMachineGUI::VirtualMachineGUI(QWidget* parent) : QWidget(parent) {
         view->horizontalHeader()->setStretchLastSection(true);
         view->verticalHeader()->hide();
     }
+    // Keep full register labels and byte addresses visible across font/DPI settings.
+    registers_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
+    registers_->horizontalHeader()->setSectionResizeMode(1,QHeaderView::ResizeToContents);
+    memory_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
     setCell(registersModel_,0,1,"$pc"); setCell(registersModel_,1,1,"$hi"); setCell(registersModel_,2,1,"$lo");
     for (unsigned i=0;i<32;++i) {
         setCell(registersModel_,static_cast<int>(i)+3,0,"$"+QString::number(i));
