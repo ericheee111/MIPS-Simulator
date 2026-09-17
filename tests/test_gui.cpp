@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QLabel>
 #include <QFontMetrics>
+#include <QFontDatabase>
 #include <QBrush>
 #include <atomic>
 #include "gui/memory_model.hpp"
@@ -45,6 +46,13 @@ private:
         return model->data(model->index(row,2)).toString();
     }
 private slots:
+    void initTestCase() {
+        // A passing state assertion is not sufficient if the platform cannot render text.
+        QVERIFY2(!QFontDatabase().families().isEmpty(), "No fonts available in the Qt platform backend");
+        const QFontMetrics metrics(QApplication::font());
+        QVERIFY(metrics.inFont(QChar('M')));
+        QVERIFY(metrics.boundingRect("MIPS 0x00000000").width() > 0);
+    }
     void loadAndStep() {
         VirtualMachineGUI gui;
         gui.load(write("# comment\n.text\nmain:\nli $t0, 7# adjacent\nend:\nj end\n"));

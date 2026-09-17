@@ -51,7 +51,8 @@ def safe_extract(archive, destination):
         with zipfile.ZipFile(archive) as package:
             for entry in package.infolist():
                 require(not stat.S_ISLNK(entry.external_attr >> 16), 'archive links are not allowed')
-                output = target(entry.filename, entry.file_size)
+                # Validate the original archive name before ZipInfo normalizes Windows separators.
+                output = target(entry.orig_filename, entry.file_size)
                 if entry.is_dir():
                     output.mkdir(parents=True, exist_ok=True)
                 else:

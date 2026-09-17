@@ -61,7 +61,10 @@ class PackagingTests(unittest.TestCase):
             root=pathlib.Path(temporary); archive=root/'bad.zip'; output=root/'out'; output.mkdir()
             for name in ('../outside','/absolute','C:/drive','pkg\\escape'):
                 with zipfile.ZipFile(archive,'w') as package:
-                    package.writestr(name,'bad')
+                    # Assign after construction: Windows ZipInfo otherwise normalizes '\\'.
+                    entry = zipfile.ZipInfo()
+                    entry.filename = name
+                    package.writestr(entry,'bad')
                 with self.assertRaises(RuntimeError):
                     safe_extract(archive,output)
             with zipfile.ZipFile(archive,'w') as package:
