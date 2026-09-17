@@ -1,0 +1,108 @@
+name: Build and verify
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  headless:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            compiler: g++
+            name: gcc
+          - os: ubuntu-24.04
+            compiler: clang++
+            name: clang
+          - os: windows-latest
+            compiler: default
+            name: msvc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Configure
+        shell: bash
+        run: |
+          args=()
+          if [ "${{ matrix.compiler }}" != default ]; then args+=("-DCMAKE_CXX_COMPILER=${{ matrix.compiler }}"); fi
+          cmake -S . -B build -DSTRICT=ON -DCMAKE_BUILD_TYPE=Release "${args[@]}"
+      - run: cmake --build build --config Release --parallel 2
+      - run: ctest --test-dir build -C Release --output-on-failure
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: headless-${{ matrix.name }}
+          path: build/Testing/Temporary/
+          retention-days: 14
+  qt:
+    env:
+      MIPS_GUI_SCREENSHOT: gui-screenshot.png
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y qtbase5-dev ninja-build
+      - run: cmake -S . -B build -G Ninja -DMIPS_BUILD_GUI=ON -DSTRICT=ON -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel 2
+      - run: ctest --test-dir build --output-on-failure
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qt-tests
+          path: |
+            build/Testing/Temporary/
+            build/gui-screenshot.png
+          retention-days: 14
+  sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address-undefined, thread]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      ASAN_OPTIONS: detect_leaks=1
+      UBSAN_OPTIONS: print_stacktrace=1
+      TSAN_OPTIONS: halt_on_error=1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: cmake -S . -B build -DMIPS_SANITIZER=${{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel 2
+      - run: ctest --test-dir build --output-on-failure
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sanitizer-${{ matrix.sanitizer }}
+          path: build/Testing/Temporary/
+          retention-days: 14
+  coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y gcovr
+      - run: cmake -S . -B build -DMIPS_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel 2
+      - run: cmake --build build --target coverage
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: coverage
+          path: |
+            build/coverage*
+            build/Testing/Temporary/
+          retention-days: 14
