@@ -24,4 +24,19 @@ Preserve the educational instruction-level model: C++11, optional Qt5 GUI, 32 ge
 - Frontends: argument permutations, missing files, malformed print commands, exact running-state diagnostic, EOF, GUI loading/highlighting and window closure.
 - Build: headless C++11 core without Qt, Qt5 tests on Linux, GCC and Clang, ASan/UBSan, and TSan where the runner permits it. Unsupported environments are reported rather than counted as passes.
 
-Performance work follows correctness: two-pass symbol resolution, immutable shared programs, bounded control batches, and avoiding full instruction-vector copies. No speedup or coverage percentage is claimed without measurement.
+Performance work follows correctness: two-pass symbol resolution, immutable shared programs, and avoiding full instruction-vector copies. The implemented controller checks commands between instructions rather than adding execution batches; batching is deferred until controller-throughput measurements justify it. No general speedup is inferred from a synthetic microbenchmark.
+
+## Completion record — 2026-09-17
+
+| Phase | Delivered outcome |
+|---|---|
+| Baseline | Original source built; passing core and failing GUI outcomes preserved |
+| Correctness | Lexer, assembler, checked memory, register/arithmetic/branch semantics, entry and fault handling repaired |
+| Structure | Program/Memory/Machine separated from assembly, runtime controller and frontends |
+| Concurrency | Sole-owner worker, bounded FIFO commands, future acknowledgements, snapshot isolation and stop/join lifecycle |
+| Verification | 70 Catch cases / 4444 assertions, 13 CLI integration cases, 21 fixture consistency checks, 21 legacy and 5 new GUI test slots; seven-job matrix passed |
+| Review and publication | Self-review recorded, real GUI screenshot checked and corrected, source pushed to `refactor/simulator-correctness`, PR #1 opened; main unchanged |
+
+Detailed design: [ARCHITECTURE.md](ARCHITECTURE.md). Executed evidence and measured coverage: [VALIDATION.md](VALIDATION.md). Review findings and remaining limits: [REVIEW.md](REVIEW.md). Publication: [PR #1](https://github.com/ericheee111/MIPS-Simulator/pull/1).
+
+The maintenance scope is complete. Further ISA expansion, comprehensive fuzzing, GUI validation on additional operating systems and performance batching are separate future changes, not hidden prerequisites or claimed accomplishments of this refactor.
