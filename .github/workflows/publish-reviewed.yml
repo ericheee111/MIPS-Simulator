@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p evidence
-          test "$(git rev-parse HEAD^)" = fb509e2c51def9f3f0b92ed2f736ee026129a6aa
+          test "$(git rev-parse HEAD^)" = afa4887eef24a75614bc946971eef6be13cc0ea8
           python3 - <<'PY'
           import base64, hashlib, json, lzma, os, pathlib, urllib.request
           blobs = [
@@ -67,6 +67,14 @@ jobs:
           print('Reviewed commit contains source, tests and documentation only')
           PY
           git cherry-pick --no-commit e9095a447f74ca8ceb35ea727d0019f41222af54
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/test_gui.cpp')
+          source = path.read_text()
+          assert source.count('for (const QString path :') == 1
+          path.write_text(source.replace('for (const QString path :', 'for (const QString& path :'))
+          PY
+          git add tests/test_gui.cpp
           git diff --cached --check
           git diff --cached --stat > evidence/changes.txt
       - name: Install Qt build dependencies
