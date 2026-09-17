@@ -9,6 +9,7 @@
 #include <QTableView>
 #include <QTextBlock>
 #include <QPixmap>
+#include <QFontMetrics>
 class GuiRegression : public QObject {
     Q_OBJECT
 private:
@@ -43,9 +44,11 @@ private slots:
         QCOMPARE(value(gui,11),QString("0x00000007"));
         QCOMPARE(text->extraSelections().first().cursor.blockNumber(),5);
         QVERIFY(gui.findChild<QTableView*>("memory")->model()->rowCount() == 1024);
+        gui.resize(1200,700); gui.show(); QApplication::processEvents();
+        auto memoryView = gui.findChild<QTableView*>("memory");
+        QVERIFY(memoryView->columnWidth(0) >= QFontMetrics(memoryView->font()).boundingRect("0x00000000").width());
         const QString image = QString::fromLocal8Bit(qgetenv("MIPS_GUI_SCREENSHOT"));
         if (!image.isEmpty()) {
-            gui.resize(1200,700); gui.show(); QApplication::processEvents();
             QVERIFY(gui.grab().save(image));
         }
     }
