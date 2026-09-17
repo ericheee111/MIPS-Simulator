@@ -1,6 +1,9 @@
 name: Build and verify
 on:
   pull_request:
+  push:
+    branches: [main]
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,6 +48,7 @@ jobs:
   qt:
     env:
       MIPS_GUI_SCREENSHOT: gui-screenshot.png
+      MIPS_DEMO_DIR: demo
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -62,6 +66,7 @@ jobs:
           path: |
             build/Testing/Temporary/
             build/gui-screenshot.png
+            build/demo/
           retention-days: 14
   sanitizers:
     strategy:
@@ -106,3 +111,127 @@ jobs:
             build/coverage*
             build/Testing/Temporary/
           retention-days: 14
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: cmake -S . -B build -DBUILD_TESTING=OFF -DMIPS_BUILD_FUZZERS=ON -DMIPS_SANITIZER=address-undefined -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel 2
+      - name: Coverage-guided bounded campaigns
+        shell: bash
+        run: |
+          mkdir -p fuzz-results/parser fuzz-results/machine
+          cp fuzz/corpus/* fuzz-results/parser/
+          ./build/parser_fuzzer fuzz-results/parser -max_total_time=30 -timeout=2 -max_len=8192 -rss_limit_mb=2048 > fuzz-results/parser.log 2>&1
+          ./build/machine_fuzzer fuzz-results/machine -max_total_time=30 -timeout=2 -max_len=256 -rss_limit_mb=2048 > fuzz-results/machine.log 2>&1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fuzz-evidence
+          path: |
+            fuzz-results/
+            crash-*
+            timeout-*
+          retention-days: 14
+  static-analysis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y clang-tools
+      - run: scan-build --status-bugs -o analysis cmake -S . -B build -DBUILD_TESTING=OFF
+      - run: scan-build --status-bugs -o analysis cmake --build build --parallel 2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: static-analysis
+          path: analysis/
+          if-no-files-found: ignore
+  package-headless:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: cmake -S . -B build -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --config Release --parallel 2
+      - run: cmake --install build --config Release --prefix stage
+      - run: python scripts/package_smoke.py stage
+      - run: cpack --config build/CPackConfig.cmake -C Release -B packages
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: package-headless-${{ matrix.os }}
+          path: packages/MIPS-Simulator-*
+          if-no-files-found: error
+          retention-days: 30
+  windows-qt-package:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      QT_ROOT: C:/Qt/5.15.2/msvc2019_64
+      MIPS_DEMO_DIR: demo
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned Qt5 toolchain and upstream license texts
+        shell: pwsh
+        run: |
+          python -m pip install aqtinstall==3.3.0
+          python -m aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 -O C:/Qt
+          "$env:QT_ROOT/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          New-Item -ItemType Directory -Force qt-licenses | Out-Null
+          foreach ($name in @('LICENSE.LGPLv3','LICENSE.GPL3','LICENSE.FDL')) {
+            Invoke-WebRequest "https://raw.githubusercontent.com/qt/qtbase/v5.15.2/$name" -OutFile "qt-licenses/$name"
+          }
+      - run: cmake -S . -B build -DMIPS_BUILD_GUI=ON -DSTRICT=ON -DCMAKE_PREFIX_PATH="$env:QT_ROOT"
+      - run: cmake --build build --config Release --parallel 2
+      - name: Qt behavior and screenshots at normal/high DPI
+        shell: pwsh
+        run: |
+          $env:QT_SCALE_FACTOR='1'
+          ctest --test-dir build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:QT_SCALE_FACTOR='2'
+          $env:MIPS_DEMO_DIR='demo-high-dpi'
+          ctest --test-dir build -C Release -R 'gui' --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build runtime without test hooks and bundle Qt
+        shell: pwsh
+        run: |
+          cmake -S . -B runtime -DBUILD_TESTING=OFF -DMIPS_BUILD_GUI=ON -DMIPS_DEPLOY_QT=ON "-DCMAKE_PREFIX_PATH=$env:QT_ROOT" "-DMIPS_QT_LICENSE_DIR=$pwd/qt-licenses"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build runtime --config Release --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --install runtime --config Release --prefix stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/package_smoke.py stage --gui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cpack --config runtime/CPackConfig.cmake -C Release -B packages
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: windows-qt-evidence
+          path: |
+            build/Testing/Temporary/
+            build/demo*/
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: package-windows-qt
+          path: packages/MIPS-Simulator-*.zip
+          if-no-files-found: error
+          retention-days: 30
