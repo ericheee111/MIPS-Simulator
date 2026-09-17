@@ -40,7 +40,7 @@ public:
   std::size_t line() const;
 
   // return the token's value
-  std::string value() const;
+  const std::string& value() const;
 
 private:
   TokenType m_type;

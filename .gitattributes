@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# Preserve the exact public legacy fixture bytes, including intentional whitespace.
+tests/vm/*.asm -text -whitespace
+*.png binary

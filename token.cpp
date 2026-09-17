@@ -9,7 +9,7 @@ TokenType Token::type() const { return m_type; }
 
 std::size_t Token::line() const { return m_line; }
 
-std::string Token::value() const { return m_value; }
+const std::string& Token::value() const { return m_value; }
 
 bool operator==(const Token &t1, const Token &t2) {
   return (t1.type() == t2.type()) && (t1.line() == t2.line()) &&

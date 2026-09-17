@@ -1,113 +1,98 @@
-cmake_minimum_required(VERSION 3.5...3.19)
-project(Milestone5 CXX)
-
-# add source for any library modules here
-set(LIB_SOURCE
-  token.hpp token.cpp
-  lexer.hpp lexer.cpp
-  parser.hpp parser.cpp
-  thread.hpp thread.cpp
-)
-
-# add source for any additional unit tests here
-set(LIB_TEST_SOURCE
-  test_lexer.cpp
-  test_parser.cpp
-)
-
-# add source for any additional gui modules here
-set(UI_SOURCE
-  virtual_machine_gui.hpp virtual_machine_gui.cpp)
-
-# add source for UI tests here
-set(UI_TEST_SOURCE
-  virtual_machine_gui_test.cpp
-  )
-
-# add source for simmips program here
-set(SIMMIPS_SOURCE simmips.cpp)
-
-# You should not need to edit below this line
-#-----------------------------------------------------------------------
-#-----------------------------------------------------------------------
-
-set(UI_TEST_SOURCE
-  virtual_machine_gui_test.cpp)
-
-# try to prevent accidental in-source builds, these cause lots of problems
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-  message(FATAL_ERROR "In-source builds not allowed. Remove any files created thus far and use a different directory for the build.")
+cmake_minimum_required(VERSION 3.16)
+project(MIPSSimulator VERSION 1.0.0 LANGUAGES CXX)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+  message(FATAL_ERROR "Use an out-of-source build: cmake -S . -B build")
 endif()
-
-# require a C++11 compiler for all targets
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# configure Qt
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-find_package(Qt5 COMPONENTS Widgets Test REQUIRED)
-
-# optional strict mode
-if(UNIX AND STRICT)
-  message("-- Enabling strict compilation mode")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
+set(CMAKE_CXX_EXTENSIONS OFF)
+option(STRICT "Treat project compiler warnings as errors" ON)
+option(MIPS_BUILD_GUI "Build the Qt5 graphical frontend and its tests" OFF)
+option(MIPS_COVERAGE "Instrument project code for GCC coverage" OFF)
+set(MIPS_SANITIZER "none" CACHE STRING "none, address-undefined, or thread")
+set_property(CACHE MIPS_SANITIZER PROPERTY STRINGS none address-undefined thread)
+option(MIPS_BUILD_BENCHMARKS "Build the bounded parser/interpreter microbenchmark" OFF)
+include(CTest)
+find_package(Threads REQUIRED)
+add_library(mips_options INTERFACE)
+if(MSVC)
+  target_compile_options(mips_options INTERFACE /utf-8 /W4 $<$<BOOL:${STRICT}>:/WX>)
+else()
+  target_compile_options(mips_options INTERFACE -Wall -Wextra -Wpedantic $<$<BOOL:${STRICT}>:-Werror>)
 endif()
-
-# setup testing
-set(TEST_FILE_DIR "${CMAKE_SOURCE_DIR}/tests")
-configure_file(${CMAKE_SOURCE_DIR}/test_config.hpp.in 
-  ${CMAKE_BINARY_DIR}/test_config.hpp)
-configure_file(${CMAKE_SOURCE_DIR}/test_config.py.in 
-  ${CMAKE_BINARY_DIR}/test_config.py)
-include_directories(${CMAKE_BINARY_DIR})
-
-# executables
-add_executable(unit_tests catch.hpp unit_tests.cpp ${LIB_TEST_SOURCE} ${LIB_SOURCE})
-if(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  target_link_libraries(unit_tests pthread)
+if(NOT MIPS_SANITIZER STREQUAL "none")
+  if(MSVC OR NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(FATAL_ERROR "Selected sanitizer needs GCC or Clang")
+  endif()
+  if(MIPS_SANITIZER STREQUAL "address-undefined")
+    set(sanitize address,undefined)
+  elseif(MIPS_SANITIZER STREQUAL "thread")
+    set(sanitize thread)
+  else()
+    message(FATAL_ERROR "Unknown MIPS_SANITIZER: ${MIPS_SANITIZER}")
+  endif()
+  target_compile_options(mips_options INTERFACE -fsanitize=${sanitize} -fno-omit-frame-pointer -fno-sanitize-recover=all)
+  target_link_options(mips_options INTERFACE -fsanitize=${sanitize})
 endif()
-
-add_executable(virtual_machine_gui_test ${UI_TEST_SOURCE} ${UI_SOURCE} ${LIB_SOURCE})
-if(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  target_link_libraries(virtual_machine_gui_test Qt5::Widgets Qt5::Test pthread)
-else(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  target_link_libraries(virtual_machine_gui_test Qt5::Widgets Qt5::Test)
+if(MIPS_COVERAGE)
+  if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR NOT MIPS_SANITIZER STREQUAL "none")
+    message(FATAL_ERROR "Coverage requires GCC and no sanitizer")
+  endif()
+  target_compile_options(mips_options INTERFACE --coverage -O0 -g)
+  target_link_options(mips_options INTERFACE --coverage)
 endif()
-
-add_executable(simmips ${SIMMIPS_SOURCE} ${UI_SOURCE} ${LIB_SOURCE})
-if(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  target_link_libraries(simmips Qt5::Widgets pthread)
-else(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  target_link_libraries(simmips Qt5::Widgets)
+add_library(mips_core token.cpp lexer.cpp parser.cpp src/numbers.cpp src/program.cpp src/memory.cpp src/machine.cpp)
+target_include_directories(mips_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(mips_core PUBLIC mips_options)
+add_library(mips_runtime src/controller.cpp src/cli.cpp)
+target_link_libraries(mips_runtime PUBLIC mips_core Threads::Threads)
+add_executable(simmips simmips.cpp)
+target_link_libraries(simmips PRIVATE mips_runtime)
+if(MIPS_BUILD_BENCHMARKS)
+  add_executable(mips_benchmark benchmarks/benchmark.cpp)
+  target_link_libraries(mips_benchmark PRIVATE mips_core)
 endif()
-
-
-
-# Tests
-#----------------------------------------------------------------------
-enable_testing()
-
-# unit tests
-add_test(unit_tests unit_tests)
-add_test(ui_tests virtual_machine_gui_test)
-
-# In the reference environment enable coverage on tests and threading
-if(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  message("-- Enabling test coverage")
-  set(GCC_COVERAGE_COMPILE_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-  set_target_properties(unit_tests PROPERTIES COMPILE_FLAGS ${GCC_COVERAGE_COMPILE_FLAGS} )
-  set_target_properties(virtual_machine_gui_test PROPERTIES COMPILE_FLAGS ${GCC_COVERAGE_COMPILE_FLAGS} )
-  target_link_libraries(unit_tests gcov)
-  target_link_libraries(virtual_machine_gui_test gcov)
-  add_custom_target(coverage
-    COMMAND ${CMAKE_COMMAND} -E env "ROOT=${CMAKE_CURRENT_SOURCE_DIR}"
-    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/coverage.sh)
+if(MIPS_BUILD_GUI)
+  find_package(Qt5 5.9 REQUIRED COMPONENTS Widgets)
+  add_library(mips_gui virtual_machine_gui.cpp virtual_machine_gui.hpp)
+  set_target_properties(mips_gui PROPERTIES AUTOMOC ON)
+  target_link_libraries(mips_gui PUBLIC mips_runtime Qt5::Widgets)
+  target_compile_definitions(simmips PRIVATE MIPS_WITH_GUI)
+  target_link_libraries(simmips PRIVATE mips_gui)
 endif()
-
-# In the reference environment enable memory checking on tests
-if(UNIX AND NOT APPLE AND CMAKE_COMPILER_IS_GNUCXX)
-  message("-- Enabling memory checks")
-  add_custom_target(memtest
-    COMMAND valgrind ${CMAKE_BINARY_DIR}/unit_tests)
+if(BUILD_TESTING)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_executable(unit_tests unit_tests.cpp test_lexer.cpp test_parser.cpp tests/test_regressions.cpp tests/test_controller.cpp)
+  target_link_libraries(unit_tests PRIVATE mips_runtime)
+  add_test(NAME unit_tests COMMAND unit_tests)
+  add_test(NAME cli_integration COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cli.py $<TARGET_FILE:simmips>)
+  add_test(NAME fixture_consistency COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/recover_fixtures.py --check)
+  set_tests_properties(unit_tests cli_integration fixture_consistency PROPERTIES TIMEOUT 45)
+  if(MIPS_BUILD_GUI)
+    find_package(Qt5 REQUIRED COMPONENTS Test)
+    set(TEST_FILE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    configure_file(test_config.hpp.in test_config.hpp)
+    add_executable(virtual_machine_gui_test virtual_machine_gui_test.cpp)
+    set_target_properties(virtual_machine_gui_test PROPERTIES AUTOMOC ON)
+    target_include_directories(virtual_machine_gui_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(virtual_machine_gui_test PRIVATE mips_gui Qt5::Test)
+    add_executable(gui_regressions tests/test_gui.cpp)
+    set_target_properties(gui_regressions PROPERTIES AUTOMOC ON)
+    target_link_libraries(gui_regressions PRIVATE mips_gui Qt5::Test)
+    add_test(NAME legacy_gui COMMAND virtual_machine_gui_test)
+    add_test(NAME gui_regressions COMMAND gui_regressions)
+    set_tests_properties(legacy_gui gui_regressions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
+  endif()
+  if(MIPS_COVERAGE)
+    find_program(GCOVR_EXECUTABLE gcovr)
+    if(NOT GCOVR_EXECUTABLE)
+      message(FATAL_ERROR "Install gcovr to generate coverage reports")
+    endif()
+    add_custom_target(coverage
+      COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+      COMMAND ${GCOVR_EXECUTABLE} --root ${CMAKE_CURRENT_SOURCE_DIR}
+        --filter "${CMAKE_CURRENT_SOURCE_DIR}/(src/|lexer.cpp|parser.cpp|token.cpp|include/)"
+        --exclude-unreachable-branches --print-summary --html-details coverage.html --xml coverage.xml
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} DEPENDS unit_tests simmips VERBATIM)
+  endif()
 endif()

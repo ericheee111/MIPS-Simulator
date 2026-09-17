@@ -2,7 +2,7 @@
 
 #include "lexer.hpp"
 #include "parser.hpp"
-//#include <sstream>
+#include <sstream>
 
 
 // put your parser tests here
@@ -377,7 +377,8 @@ TEST_CASE("test .data -- label and layouts", "[parser]") {
 
 		TokenList tl = tokenize(iss);
 		Parse syntax;
-		REQUIRE(syntax.parse(tl) == true);
+		// Negative allocation sizes are invalid; the legacy expectation hid this bug.
+		REQUIRE(syntax.parse(tl) == false);
 	}
 
 	{

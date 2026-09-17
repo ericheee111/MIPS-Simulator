@@ -1,0 +1,146 @@
+[
+  {
+    "instructions": 500,
+    "steps": 1000000,
+    "parse_seconds": 0.151184,
+    "execution_seconds": 0.070964,
+    "implementation": "original",
+    "trial": 0
+  },
+  {
+    "instructions": 500,
+    "steps": 1000000,
+    "parse_seconds": 0.08439,
+    "execution_seconds": 0.048087,
+    "implementation": "original",
+    "trial": 1
+  },
+  {
+    "instructions": 500,
+    "steps": 1000000,
+    "parse_seconds": 0.071267,
+    "execution_seconds": 0.04795,
+    "implementation": "original",
+    "trial": 2
+  },
+  {
+    "instructions": 500,
+    "steps": 1000000,
+    "parse_seconds": 0.000416,
+    "execution_seconds": 0.009625,
+    "implementation": "refactored",
+    "trial": 0
+  },
+  {
+    "instructions": 500,
+    "steps": 1000000,
+    "parse_seconds": 0.000384,
+    "execution_seconds": 0.014183,
+    "implementation": "refactored",
+    "trial": 1
+  },
+  {
+    "instructions": 500,
+    "steps": 1000000,
+    "parse_seconds": 0.000398,
+    "execution_seconds": 0.010066,
+    "implementation": "refactored",
+    "trial": 2
+  },
+  {
+    "instructions": 1000,
+    "steps": 1000000,
+    "parse_seconds": 0.294756,
+    "execution_seconds": 0.045809,
+    "implementation": "original",
+    "trial": 0
+  },
+  {
+    "instructions": 1000,
+    "steps": 1000000,
+    "parse_seconds": 0.275273,
+    "execution_seconds": 0.039246,
+    "implementation": "original",
+    "trial": 1
+  },
+  {
+    "instructions": 1000,
+    "steps": 1000000,
+    "parse_seconds": 0.286843,
+    "execution_seconds": 0.042538,
+    "implementation": "original",
+    "trial": 2
+  },
+  {
+    "instructions": 1000,
+    "steps": 1000000,
+    "parse_seconds": 0.001727,
+    "execution_seconds": 0.014127,
+    "implementation": "refactored",
+    "trial": 0
+  },
+  {
+    "instructions": 1000,
+    "steps": 1000000,
+    "parse_seconds": 0.000803,
+    "execution_seconds": 0.008606,
+    "implementation": "refactored",
+    "trial": 1
+  },
+  {
+    "instructions": 1000,
+    "steps": 1000000,
+    "parse_seconds": 0.000818,
+    "execution_seconds": 0.00874,
+    "implementation": "refactored",
+    "trial": 2
+  },
+  {
+    "instructions": 2000,
+    "steps": 1000000,
+    "parse_seconds": 1.405084,
+    "execution_seconds": 0.050495,
+    "implementation": "original",
+    "trial": 0
+  },
+  {
+    "instructions": 2000,
+    "steps": 1000000,
+    "parse_seconds": 1.27186,
+    "execution_seconds": 0.091665,
+    "implementation": "original",
+    "trial": 1
+  },
+  {
+    "instructions": 2000,
+    "steps": 1000000,
+    "parse_seconds": 1.363578,
+    "execution_seconds": 0.037473,
+    "implementation": "original",
+    "trial": 2
+  },
+  {
+    "instructions": 2000,
+    "steps": 1000000,
+    "parse_seconds": 0.003311,
+    "execution_seconds": 0.008875,
+    "implementation": "refactored",
+    "trial": 0
+  },
+  {
+    "instructions": 2000,
+    "steps": 1000000,
+    "parse_seconds": 0.004736,
+    "execution_seconds": 0.008757,
+    "implementation": "refactored",
+    "trial": 1
+  },
+  {
+    "instructions": 2000,
+    "steps": 1000000,
+    "parse_seconds": 0.001802,
+    "execution_seconds": 0.008632,
+    "implementation": "refactored",
+    "trial": 2
+  }
+]
