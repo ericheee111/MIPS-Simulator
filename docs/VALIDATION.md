@@ -1,5 +1,7 @@
 # Validation record
 
+Recorded on 2026-09-17. Validated implementation: `e28b8d0edaabee77af7f268096be875076aa8d62`. Documentation-only follow-ups do not change the measured implementation. The PR checks show the result for its current head.
+
 ## Baseline
 
 Original commit: `74731fa1af9b1997bcbaa3b01eb88fe7d3486677`.
@@ -23,22 +25,53 @@ CTest targets: core/controller/CLI Catch tests, 13 real-executable Python CLI in
 
 The original negative `.space` assertion was corrected with an inline rationale; the other original Catch expectations remain. GUI immediate reads were replaced with acknowledgement-based waits without changing expected results.
 
-## Remote GUI and cross-platform verification
+## Completed remote GUI and cross-platform verification
 
-Qt5 and Windows cannot be exercised in the local headless Linux environment. CI contains strict Linux/Windows headless builds, Qt5 legacy/new GUI tests, separate ASan/UBSan and TSan jobs, and measured coverage. Results are pending until a corresponding run completes; the presence of a job is not evidence that it passed. This section will be updated after remote validation.
+All seven jobs passed in [run 35212179946](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35212179946), including the final GUI address-column correction. The preceding complete matrix [35211889151](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35211889151) also passed.
+
+| Job | Environment and scope | Actual result |
+|---|---|---|
+| headless GCC | Ubuntu 24.04, strict C++11 Release | 3/3 CTest targets pass |
+| headless Clang | Ubuntu 24.04, strict C++11 Release | 3/3 CTest targets pass |
+| headless MSVC | GitHub-hosted Windows, strict Release | 3/3 CTest targets pass |
+| Qt | Ubuntu 24.04, Qt5, strict C++11 Debug, offscreen | 5/5 CTest targets pass |
+| address-undefined | Ubuntu 24.04, ASan + UBSan, leak detection enabled | 3/3 CTest targets pass; no sanitizer report |
+| thread | Ubuntu 24.04, TSan, halt on error enabled | 3/3 CTest targets pass; no race report |
+| coverage | Ubuntu 24.04, GCC, gcovr 7.0 | Tests pass; HTML and XML produced |
+
+The Qt run includes **21 legacy GUI test slots** and **5 new GUI test slots**. QTest reports 23 and 7 passes respectively because it also counts initialization and cleanup; those are not 30 distinct GUI scenarios. Both executables report zero failures and zero skipped tests. Windows validation is headless only; the sanitizer jobs do not include Qt.
+
+The `qt-tests` artifact includes a real rendered screenshot. Visual review found a clipped memory-address column in the first screenshot; content-sized identifier columns fixed it. A font-metric assertion now verifies full address visibility, and the updated screenshot was inspected again.
+
+### Measured coverage, with denominator
+
+The `coverage.xml` artifact from run 35212179946 reports:
+
+- Line coverage: **600 / 624 = 96.15%**.
+- Branch coverage: **969 / 1485 = 65.25%**.
+
+The configured filter includes `src/`, `include/`, `lexer.cpp`, `parser.cpp`, and `token.cpp`. It excludes tests, third-party Catch, the Qt frontend, and the executable entry-point file. The command uses `--exclude-unreachable-branches`. These are selected core/runtime coverage figures, **not whole-project or GUI coverage**, and not a claim of 95% branch coverage. The measured branch coverage still leaves meaningful room for additional error-path and fault-injection tests.
+
+Artifact: `coverage`, ID `10492083559`, ZIP SHA256 `1ba1021b82509546be8b34a02c1087f9f812e585c2c247652276603579ce6fb1`. CI retains downloadable artifacts for 14 days; the workflow and reproduction commands remain in Git.
+
+## Validation-driven fixes
+
+The first full Qt import attempt [35211508728](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35211508728) stopped on a copied `QString` range-loop variable in a new test under `-Werror`. It was changed to `const QString&`; the warning policy and test were not disabled. The next import [35211738605](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35211738605) built and passed all five CTest targets before publishing the implementation. The one-time importer was then removed; ordinary PR CI now validates the branch.
 
 ## Review gates
 
+See [review record](REVIEW.md) for the implementation self-review and explicit remaining limits.
+
 - Syntax and execution support are explicitly different; parser-only opcodes fail at runtime.
-- No raw thread escapes a lifetime; all VM access from frontends is acknowledged or copied.
-- No unchecked multi-byte memory access or 16-bit address parameter remains.
+- Frontends use acknowledged commands or isolated snapshots, not unsynchronized access to the worker's mutable machine.
+- Multi-byte accesses validate their complete range before writing; addresses are not narrowed to 16 bits.
 - Signed arithmetic uses wide intermediates; unsigned arithmetic uses unsigned semantics.
-- No hidden first step, stale load result, swallowed quit, or fixed-delay test synchronization.
+- Loading has no hidden first step, Pause does not consume another command, and tests wait for completion rather than fixed delays.
 - Original fixtures have explicit public-source provenance; no private course documents are included.
-- No performance multiplier, coverage threshold, or universal race-freedom claim is inferred from test counts.
+- Passing tests and sanitizer runs are not universal race-freedom or memory-safety proofs.
 
 ## Reproduction
 
-Use the exact build/test commands in README. Test process timeouts are configured in CTest and in subprocess tests. Sanitizers are separate builds. Coverage is opt-in and reports the selected core/runtime sources; it is not equivalent to a whole-project or GUI coverage percentage.
+Use the exact build/test commands in README. Test process timeouts are configured in CTest and in subprocess tests. Sanitizers are separate builds. GCC coverage requires `gcovr`: configure with `-DMIPS_COVERAGE=ON`, build, then run `cmake --build build --target coverage`.
 
-A same-compiler, same-host parser/execution microbenchmark was run with three samples per workload; see `benchmarks/README.md` and its raw JSON. Header self-containment was checked for every `include/mips/*.hpp` with a standalone strict C++11 compilation.
+A same-compiler, same-host parser/execution microbenchmark was run with three samples per workload; see `benchmarks/README.md` and its raw JSON. Results are synthetic and workload-specific, not a general speedup claim. Header self-containment was checked for every `include/mips/*.hpp` with a standalone strict C++11 compilation.
