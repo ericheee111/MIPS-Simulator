@@ -5,7 +5,18 @@ on:
 permissions:
   contents: read
 jobs:
+  version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Check tag matches packaged version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/check_release_tag.py "$RELEASE_TAG"
   verify:
+    needs: version
     uses: ./.github/workflows/ci.yml
   draft:
     needs: verify

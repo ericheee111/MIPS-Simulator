@@ -6,7 +6,7 @@ else()
   set(_configuration --release)
 endif()
 execute_process(COMMAND "@MIPS_WINDEPLOYQT@" ${_configuration} --no-translations
-  --compiler-runtime --dir "${_directory}" "${_directory}/simmips.exe"
+  --no-compiler-runtime --dir "${_directory}" "${_directory}/simmips.exe"
   RESULT_VARIABLE _result)
 if(NOT _result EQUAL 0)
   message(FATAL_ERROR "windeployqt failed: ${_result}")

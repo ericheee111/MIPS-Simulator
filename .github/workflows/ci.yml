@@ -170,6 +170,7 @@ jobs:
       - run: cmake --install build --config Release --prefix stage
       - run: python scripts/package_smoke.py stage
       - run: cpack --config build/CPackConfig.cmake -C Release -B packages
+      - run: python scripts/package_smoke.py packages --archives
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: package-headless-${{ matrix.os }}
@@ -220,6 +221,8 @@ jobs:
           python scripts/package_smoke.py stage --gui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cpack --config runtime/CPackConfig.cmake -C Release -B packages
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/package_smoke.py packages --archives --gui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

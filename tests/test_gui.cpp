@@ -27,11 +27,11 @@ private:
         return path;
     }
     void capture(VirtualMachineGUI& gui, const QString& name) {
-        const auto directory = QString::fromLocal8Bit(qgetenv("MIPS_DEMO_DIR"));
-        if (directory.isEmpty()) return;
-        QVERIFY(QDir().mkpath(directory));
+        const auto imageDirectory = QString::fromLocal8Bit(qgetenv("MIPS_DEMO_DIR"));
+        if (imageDirectory.isEmpty()) return;
+        QVERIFY(QDir().mkpath(imageDirectory));
         gui.resize(1200,700); gui.show(); QApplication::processEvents();
-        QVERIFY(gui.grab().save(directory+"/"+name+".png"));
+        QVERIFY(gui.grab().save(imageDirectory+"/"+name+".png"));
     }
     bool click(VirtualMachineGUI& gui, const char* name) {
         auto button=gui.findChild<QPushButton*>(name);

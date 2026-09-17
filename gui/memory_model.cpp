@@ -28,12 +28,15 @@ void MemoryModel::update(const DebugState& state) {
         state.memory.size() > state.memorySize || state.memoryBase > state.memorySize-state.memory.size())
         throw std::invalid_argument("invalid debugger memory window");
     if (total_ != state.memorySize) {
-        beginResetModel(); total_ = state.memorySize; base_ = state.memoryBase; bytes_ = state.memory; endResetModel();
+        // Allocate before changing model invariants or entering a reset notification.
+        auto replacement = state.memory;
+        beginResetModel(); total_ = state.memorySize; base_ = state.memoryBase; bytes_.swap(replacement); endResetModel();
         return;
     }
     if (base_ != state.memoryBase || bytes_.size() != state.memory.size()) {
         const auto oldBase = base_; const auto oldSize = bytes_.size();
-        base_ = state.memoryBase; bytes_ = state.memory;
+        auto replacement = state.memory;
+        base_ = state.memoryBase; bytes_.swap(replacement);
         if (oldSize) emit dataChanged(index(static_cast<int>(oldBase),1),index(static_cast<int>(oldBase+oldSize-1),1));
         if (!bytes_.empty()) emit dataChanged(index(static_cast<int>(base_),1),index(static_cast<int>(base_+bytes_.size()-1),1));
         return;
