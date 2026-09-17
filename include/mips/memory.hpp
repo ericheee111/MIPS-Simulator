@@ -2,7 +2,15 @@
 #define MIPS_MEMORY_HPP
 #include "numbers.hpp"
 #include <vector>
+#include <stdexcept>
 namespace mips {
+class MemoryError : public std::out_of_range {
+public:
+    MemoryError(uint64_t location, unsigned bytes)
+        : std::out_of_range("memory access out of bounds or invalid width"), address(location), width(bytes) {}
+    const uint64_t address;
+    const unsigned width;
+};
 class Memory {
 public:
     explicit Memory(std::size_t size = DefaultMemoryBytes);

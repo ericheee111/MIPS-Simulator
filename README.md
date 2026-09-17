@@ -31,7 +31,7 @@ ctest --test-dir build-gui --output-on-failure
 
 `FILE.asm --gui` also works. CTest configures Qt's offscreen platform for GUI tests; an interactive session uses your normal desktop platform. The historical `Vagrantfile` is retained for context, not as the recommended installation path.
 
-The debugger displays read-only assembly, the next instruction's source line, registers, and all 1024 default memory bytes. Loading does **not** execute a hidden instruction. Step waits for a worker acknowledgement; Run executes in the background; Break pauses at an instruction boundary. GUI updates occur only on the GUI thread.
+The debugger displays read-only assembly with line numbers, the next instruction's source line, changed-register highlights, and a lazy view over the default 1024 memory bytes. Reset/Reload, memory-address navigation and bounded Run to are available. Loading does **not** execute a hidden instruction. Step waits for a worker acknowledgement; Run executes in the background; Break pauses at an instruction boundary. GUI updates occur only on the GUI thread.
 
 ## Command-line debugger
 
@@ -43,9 +43,11 @@ The debugger displays read-only assembly, the next instruction's source line, re
 | `print $t0` | Print a register by alias or number; `$pc`, `$hi`, `$lo` are also supported. |
 | `print &0x4` | Print one memory byte; addresses may be decimal or `0x` hexadecimal. |
 | `status` | Print the current error, or nothing if there is no error. |
+| `reset` | Restore initial registers, memory, PC and clear faults without reparsing. |
+| `until end 1000000` | Run synchronously to label/index before executing it, or stop at the instruction budget. |
 | `quit` | Stop, join the worker, and exit successfully. EOF also stops and joins. |
 
-While running, `step` and `print` report `Error: simulation running. Type break to halt.` Run the included sum-of-squares example, then `break` and `print &0x4`: the result 385 is stored little-endian as `81 01 00 00` at addresses 4–7.
+While running, `step` and `print` report `Error: simulation running. Type break to halt.` Run `until end` on the included sum-of-squares example, then `print &0x4`: the result 385 is stored little-endian as `81 01 00 00` at addresses 4–7.
 
 Programs conventionally finish in an explicit self-loop (`end: j end`). There is no implicit successful halt instruction. A step past the instruction array is a runtime error; errors are sticky until another program is loaded.
 
@@ -84,7 +86,7 @@ ASCII source -> Lexer -> two-pass Parser -> shared immutable Program
                                 CLI acknowledgements     Qt snapshots
 ```
 
-The worker alone owns mutable machine state. FIFO commands return futures whose values include the **completed** operation's state and a sequence number. Snapshots own register/memory copies and share only immutable code. Pause never removes unrelated messages. Shutdown rejects new requests, drains accepted requests, and joins the worker.
+The worker alone owns mutable machine state. FIFO commands return futures whose values include the **completed** operation's state and a sequence number. Modern replies contain coherent registers and optional bounded memory windows; legacy full snapshots remain available. Both share only internally sealed immutable code. Public Program constructors defensively copy builders. Pause never removes unrelated messages. Shutdown rejects new requests, drains accepted requests, and joins the worker.
 
 See [architecture and invariants](docs/ARCHITECTURE.md), [migration plan](docs/MODERNIZATION.md), and [validation record](docs/VALIDATION.md).
 
@@ -109,3 +111,21 @@ Legacy VM fixtures were reconstructed from the assembly literals already present
 Third-party Catch2 remains vendored with its original license notice. See [third-party notes](THIRD_PARTY.md).
 
 A bounded optional microbenchmark and same-host measurements are in [benchmarks](benchmarks/README.md). They are explicitly workload-specific, not a resume-wide performance claim.
+
+
+## Follow-up hardening and distribution
+
+See [the deterministic demo](docs/DEMO.md), [follow-up design/review gates](docs/FOLLOWUP.md)
+and [coverage-guided fuzzing](fuzz/README.md). The supported ISA and C++11/Qt5 scope are unchanged.
+
+`cmake --install build --prefix stage --config Release` and CPack provide relocatable
+headless archives and an explicit Windows Qt bundle. CI validates Windows Qt at
+scale factors 1 and 2, plus package startup with developer/Qt paths removed. Package
+startup on a hosted runner is not a pristine-OS certification. Runtime packages are
+rebuilt with BUILD_TESTING=OFF, excluding all fault-injection hooks.
+
+Main-branch pushes now run CI. Pushing an explicit version tag starts the same
+verification matrix and prepares a **draft** release with SHA256 checksums; it never
+publishes a stable release or merges main automatically. CI package artifacts can be
+used before a maintainer chooses to tag/release. Project-wide licensing remains the
+owner's decision; third-party distribution notices accompany optional Qt bundles.

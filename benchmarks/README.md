@@ -19,3 +19,20 @@ cmake --build build-bench --parallel 2
 ```
 
 For an exact comparison, compile the benchmark with the recorded flags and each implementation's own parser/lexer/VM sources; do not combine old headers with new implementation files.
+
+## Follow-up controller / observation workload
+
+`controller_benchmark.cpp` uses the same fixed jump loop and three 250 ms trials at
+1 KiB, 1 MiB and 16 MiB, with zero/four concurrent observers. The previous runtime
+is built from the source bundle commit `8c78610` with `MIPS_BENCH_LEGACY`; the candidate
+uses bounded register observations. Both builds use GCC 14.2, C++11 and Release
+`-O3 -DNDEBUG` on the same host. Raw CSV and candidate source hashes accompany the
+results in `controller-measurements.json`.
+
+This deliberately compares full-snapshot requests with the new lightweight requests:
+it measures the relevant API/workflow change, not an isolated scheduler speedup.
+Observers only need execution state, so copying all memory was unnecessary work.
+No GUI throughput, scheduling percentile, general speedup or long-term guarantee is
+inferred from these three samples. The deterministic fairness test, not a timing
+threshold, is the acceptance gate. The benchmark's sleep bounds its workload duration;
+commands still use futures for completion. Re-run with the same load to compare.

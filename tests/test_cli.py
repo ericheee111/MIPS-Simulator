@@ -61,4 +61,20 @@ class CLI(unittest.TestCase):
         self.path.write_text('.text\nmain:\nli $t0, 7\nsw $t0, 1021\n')
         p=self.invoke('step\nstep\nstatus\nquit\n')
         self.assertEqual(p.returncode,0); self.assertIn('out of bounds',p.stderr)
+    def test_version(self):
+        p = self.invoke(args=['--version'])
+        self.assertEqual(p.returncode,0); self.assertIn('1.1.0',p.stdout)
+    def test_reset_and_run_to(self):
+        p = self.invoke('until end\nprint $t0\nreset\nprint $t0\nquit\n')
+        self.assertEqual(p.returncode,0,p.stderr); self.assertEqual(p.stderr,'')
+        self.assertIn('Target reached at 0x00000001',p.stdout)
+        self.assertIn('0x00000007',p.stdout); self.assertIn('0x00000000',p.stdout)
+    def test_run_to_budget(self):
+        self.path.write_text('.text\nmain:\nj main\nend:\nnop\n')
+        p = self.invoke('until end 17\nstatus\nquit\n')
+        self.assertEqual(p.returncode,0,p.stderr); self.assertEqual(p.stderr,'')
+        self.assertIn('Budget reached',p.stdout)
+    def test_invalid_run_to(self):
+        p = self.invoke('until\nuntil missing\nuntil end nope\nuntil end 0\nuntil end 1 extra\nquit\n')
+        self.assertEqual(p.returncode,0,p.stderr); self.assertEqual(p.stderr.count('Error:'),5)
 if __name__=='__main__': unittest.main()

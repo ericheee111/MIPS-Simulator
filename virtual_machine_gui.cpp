@@ -1,13 +1,16 @@
 #include "virtual_machine_gui.hpp"
+#include "gui/source_editor.hpp"
+#include "gui/memory_model.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "mips/numbers.hpp"
 #include <QFile>
+#include <QFileDialog>
 #include <QFontDatabase>
 #include <QColor>
+#include <QBrush>
 #include <QTextCursor>
 #include <QTextEdit>
-#include <QTextFormat>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -17,44 +20,49 @@
 #include <QStandardItemModel>
 #include <QTableView>
 #include <QTextBlock>
+#include <QScrollBar>
 #include <QTimer>
+#include <QShortcut>
+#include <algorithm>
 #include <chrono>
 #include <sstream>
 #include <utility>
 namespace {
-QString hex(uint32_t value, unsigned digits = 8) {
-    return QString::fromStdString(mips::hexValue(value, digits));
-}
+QString hex(uint32_t value) { return QString::fromStdString(mips::hexValue(value)); }
 void setCell(QStandardItemModel* model, int row, int column, const QString& value) {
-    const auto index = model->index(row, column);
-    if (model->data(index).toString() != value) model->setData(index, value);
+    const auto index = model->index(row,column);
+    if (model->data(index).toString() != value) model->setData(index,value);
 }
 }
-VirtualMachineGUI::Pending::Pending(Request operation, std::future<mips::Snapshot> future)
+VirtualMachineGUI::Pending::Pending(mips::CommandKind operation, std::future<mips::Reply> future)
     : kind(operation), result(std::move(future)) {}
-VirtualMachineGUI::VirtualMachineGUI(QWidget* parent) : QWidget(parent) {
+VirtualMachineGUI::VirtualMachineGUI(QWidget* parent, mips::ControllerOptions options)
+    : QWidget(parent), controller_(mips::Machine(),std::move(options)) {
     setWindowTitle("MIPS Simulator — Instruction-level debugger");
-    text_ = new QPlainTextEdit(this); text_->setObjectName("text"); text_->setReadOnly(true);
+    text_ = new mips::SourceEditor(this); text_->setObjectName("text"); text_->setReadOnly(true);
     registers_ = new QTableView(this); registers_->setObjectName("registers");
     memory_ = new QTableView(this); memory_->setObjectName("memory");
     status_ = new QLineEdit(this); status_->setObjectName("status"); status_->setReadOnly(true);
-    step_ = new QPushButton("Step",this); step_->setObjectName("step");
-    run_ = new QPushButton("Run",this); run_->setObjectName("run");
-    pause_ = new QPushButton("Break",this); pause_->setObjectName("break");
+    executionStatus_ = new QLabel(this); executionStatus_->setObjectName("executionState");
+    auto button = [this](const char* name,const char* caption) {
+        auto item = new QPushButton(QString::fromLatin1(caption),this); item->setObjectName(QString::fromLatin1(name)); return item;
+    };
+    step_ = button("step","Step"); run_ = button("run","Run"); pause_ = button("break","Break");
+    reset_ = button("reset","Reset"); reload_ = button("reload","Reload"); until_ = button("runTo","Run to");
+    auto open = button("open","Open..."); auto go = button("memoryGo","Go");
+    target_ = new QLineEdit(this); target_->setObjectName("runTarget"); target_->setPlaceholderText("Label or instruction index");
+    memoryAddress_ = new QLineEdit("0x0",this); memoryAddress_->setObjectName("memoryAddress");
+    memoryAddress_->setToolTip("Decimal or hexadecimal byte address");
     registersModel_ = new QStandardItemModel(35,3,this);
-    registersModel_->setHorizontalHeaderLabels({"Number", "Alias", "Value (Hex)"});
-    memoryModel_ = new QStandardItemModel(0,2,this);
-    memoryModel_->setHorizontalHeaderLabels({"Address (Hex)", "Value (Hex)"});
+    registersModel_->setHorizontalHeaderLabels({"Number","Alias","Value (Hex)"});
+    memoryModel_ = new mips::MemoryModel(this);
     registers_->setModel(registersModel_); memory_->setModel(memoryModel_);
     const QFont fixed = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     text_->setFont(fixed); registers_->setFont(fixed); memory_->setFont(fixed);
-    for (auto view : {registers_, memory_}) {
-        view->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        view->setAlternatingRowColors(true);
-        view->horizontalHeader()->setStretchLastSection(true);
-        view->verticalHeader()->hide();
+    for (auto view : {registers_,memory_}) {
+        view->setEditTriggers(QAbstractItemView::NoEditTriggers); view->setAlternatingRowColors(true);
+        view->horizontalHeader()->setStretchLastSection(true); view->verticalHeader()->hide();
     }
-    // Keep full register labels and byte addresses visible across font/DPI settings.
     registers_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
     registers_->horizontalHeader()->setSectionResizeMode(1,QHeaderView::ResizeToContents);
     memory_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);
@@ -64,113 +72,200 @@ VirtualMachineGUI::VirtualMachineGUI(QWidget* parent) : QWidget(parent) {
         setCell(registersModel_,static_cast<int>(i)+3,1,"$"+QString::fromLatin1(mips::registerAlias(i)));
     }
     auto layout = new QGridLayout(this);
-    layout->addWidget(new QLabel("Assembly",this),0,0);
-    layout->addWidget(new QLabel("Registers",this),0,1);
-    layout->addWidget(new QLabel("Memory",this),0,2);
-    layout->addWidget(text_,1,0); layout->addWidget(registers_,1,1); layout->addWidget(memory_,1,2);
-    layout->addWidget(status_,2,0,1,3);
+    layout->addWidget(open,0,0); layout->addWidget(reload_,0,1); layout->addWidget(reset_,0,2);
+    layout->addWidget(executionStatus_,0,3,1,3);
+    layout->addWidget(new QLabel("Assembly",this),1,0,1,2);
+    layout->addWidget(new QLabel("Registers",this),1,2,1,2);
+    layout->addWidget(new QLabel("Memory",this),1,4,1,2);
+    layout->addWidget(text_,2,0,1,2); layout->addWidget(registers_,2,2,1,2); layout->addWidget(memory_,2,4,1,2);
     layout->addWidget(step_,3,0); layout->addWidget(run_,3,1); layout->addWidget(pause_,3,2);
-    layout->setColumnStretch(0,5); layout->setColumnStretch(1,4); layout->setColumnStretch(2,3);
-    connect(step_,&QPushButton::clicked,this,[this] { request(Request::Step); });
-    connect(run_,&QPushButton::clicked,this,[this] { request(Request::Run); });
-    connect(pause_,&QPushButton::clicked,this,[this] { request(Request::Pause); });
-    timer_ = new QTimer(this);
-    timer_->setInterval(10);
-    connect(timer_,&QTimer::timeout,this,&VirtualMachineGUI::collect);
-    timer_->start();
+    layout->addWidget(memoryAddress_,3,4); layout->addWidget(go,3,5);
+    layout->addWidget(target_,4,0,1,2); layout->addWidget(until_,4,2);
+    layout->addWidget(new QLabel("F10 Step  |  F5 Run  |  Shift+F5 Break",this),4,3,1,3);
+    layout->addWidget(status_,5,0,1,6);
+    layout->setColumnStretch(0,3); layout->setColumnStretch(1,2);
+    layout->setColumnStretch(2,2); layout->setColumnStretch(3,2);
+    layout->setColumnStretch(4,2); layout->setColumnStretch(5,1);
+    layout->setRowStretch(2,1);
+    connect(step_,&QPushButton::clicked,this,[this] { request(mips::CommandKind::Step); });
+    connect(run_,&QPushButton::clicked,this,[this] { request(mips::CommandKind::Run); });
+    connect(pause_,&QPushButton::clicked,this,[this] { request(mips::CommandKind::Pause); });
+    connect(reset_,&QPushButton::clicked,this,[this] { request(mips::CommandKind::Reset); });
+    connect(until_,&QPushButton::clicked,this,[this] { request(mips::CommandKind::RunUntil); });
+    connect(reload_,&QPushButton::clicked,this,[this] { load(filename_); });
+    connect(open,&QPushButton::clicked,this,[this] {
+        const auto path = QFileDialog::getOpenFileName(this,"Open MIPS assembly",filename_,"Assembly (*.asm);;All files (*)");
+        if (!path.isEmpty()) load(path);
+    });
+    connect(go,&QPushButton::clicked,this,&VirtualMachineGUI::jumpMemory);
+    connect(memoryAddress_,&QLineEdit::returnPressed,this,&VirtualMachineGUI::jumpMemory);
+    connect(memory_->verticalScrollBar(),&QScrollBar::valueChanged,this,[this] { memoryScrolled(); });
+    for (const auto& binding : {std::make_pair(QString("F10"),step_),std::make_pair(QString("F5"),run_),
+         std::make_pair(QString("Shift+F5"),pause_),std::make_pair(QString("Ctrl+R"),reset_),
+         std::make_pair(QString("Ctrl+O"),open)}) {
+        auto shortcut = new QShortcut(QKeySequence(binding.first),this);
+        connect(shortcut,&QShortcut::activated,binding.second,&QPushButton::click);
+    }
+    completionTimer_ = new QTimer(this); completionTimer_->setObjectName("completionTimer"); completionTimer_->setInterval(5);
+    connect(completionTimer_,&QTimer::timeout,this,&VirtualMachineGUI::collect);
+    refreshTimer_ = new QTimer(this); refreshTimer_->setObjectName("refreshTimer"); refreshTimer_->setInterval(33);
+    connect(refreshTimer_,&QTimer::timeout,this,&VirtualMachineGUI::poll);
     render();
 }
 VirtualMachineGUI::~VirtualMachineGUI() {
-    timer_->stop();
-    controller_.shutdown();
+    completionTimer_->stop(); refreshTimer_->stop(); controller_.shutdown();
+}
+bool VirtualMachineGUI::isReady() const {
+    return !controllerFailed_ && displayed_.status != mips::Status::Error && diagnostic_.isEmpty();
+}
+mips::MemoryWindow VirtualMachineGUI::window() const {
+    const std::size_t size = displayed_.memorySize;
+    const uint64_t base = size == 0 ? 0 : std::min<uint64_t>(windowBase_,size-1);
+    return mips::MemoryWindow(base,std::min<std::size_t>(1024,size-static_cast<std::size_t>(base)));
+}
+void VirtualMachineGUI::failed(const std::exception& error) {
+    diagnostic_ = "Error:1: " + QString::fromUtf8(error.what());
+    running_ = false; controllerFailed_ = true; userRequests_ = 0; pending_.clear();
+    completionTimer_->stop(); refreshTimer_->stop(); render();
 }
 void VirtualMachineGUI::load(QString filename) {
-    // A pause acknowledgement also orders all earlier requests before this load.
-    controller_.pause().get();
-    pending_.clear(); userRequests_ = 0; running_ = false;
-    displayed_ = controller_.load(mips::Machine()).get().machine;
-    text_->clear(); diagnostic_.clear();
+    filename_ = filename;
+    // All submission and completion errors, including pause/reset, are contained.
+    try {
+        controller_.request(mips::CommandKind::Pause).get();
+        pending_.clear(); userRequests_ = 0; running_ = false; windowDirty_ = false;
+        completionTimer_->stop(); refreshTimer_->stop();
+        displayed_ = controller_.replace(mips::Machine()).get().state;
+    } catch (const std::exception& error) { failed(error); return; }
+    text_->clear(); diagnostic_.clear(); windowBase_ = 0; hasPrevious_ = false;
+    stopReason_ = mips::StopReason::Paused;
     try {
         QFile file(filename);
-        if (!file.open(QIODevice::ReadOnly)) throw std::runtime_error("Error:1: cannot open assembly file");
-        const QByteArray content = file.read(static_cast<qint64>(mips::MaxSourceBytes)+1);
-        if (file.error() != QFile::NoError) throw std::runtime_error("Error:1: failed to read assembly file");
-        if (static_cast<std::size_t>(content.size()) > mips::MaxSourceBytes)
-            throw std::runtime_error("Error:1: assembly file exceeds 4 MiB");
+        if (!file.open(QIODevice::ReadOnly)) throw std::runtime_error("cannot open assembly file");
+        const auto content = file.read(static_cast<qint64>(mips::MaxSourceBytes)+1);
+        if (file.error() != QFile::NoError) throw std::runtime_error("failed to read assembly file");
+        if (static_cast<std::size_t>(content.size()) > mips::MaxSourceBytes) throw std::runtime_error("assembly file exceeds 4 MiB");
         text_->setPlainText(QString::fromLatin1(content));
-        std::istringstream source(std::string(content.constData(), static_cast<std::size_t>(content.size())));
+        std::istringstream source(std::string(content.constData(),static_cast<std::size_t>(content.size())));
         Parse parser;
         if (!parser.parse(tokenize(source))) throw std::runtime_error(parser.error());
-        displayed_ = controller_.load(parser.getVM()).get().machine;
-    } catch (const std::exception& error) { diagnostic_ = QString::fromUtf8(error.what()); }
+        auto state = parser.getVM();
+        const auto bytes = state.memSize();
+        try { displayed_ = controller_.replace(std::move(state),mips::MemoryWindow(0,std::min<std::size_t>(1024,bytes))).get().state; }
+        catch (const std::exception& error) { failed(error); return; }
+    } catch (const std::exception& error) {
+        diagnostic_ = QString::fromUtf8(error.what());
+        if (!diagnostic_.startsWith("Error:")) diagnostic_.prepend("Error:1: ");
+    }
     render();
 }
-void VirtualMachineGUI::request(Request operation) {
-    if (userRequests_ != 0) return;
-    if ((operation == Request::Step || operation == Request::Run) && running_) return;
-    if (displayed_.getStatus() == mips::Status::Error) return;
-    switch (operation) {
-    case Request::Step: pending_.emplace_back(operation,controller_.step()); break;
-    case Request::Run: pending_.emplace_back(operation,controller_.run()); break;
-    case Request::Pause: pending_.emplace_back(operation,controller_.pause()); break;
-    case Request::Poll: return;
+void VirtualMachineGUI::request(mips::CommandKind operation) {
+    if (controllerFailed_ || userRequests_ != 0) return;
+    if ((operation == mips::CommandKind::Step || operation == mips::CommandKind::Run || operation == mips::CommandKind::RunUntil) && !isReady()) return;
+    if ((operation == mips::CommandKind::Step || operation == mips::CommandKind::Run || operation == mips::CommandKind::RunUntil) && running_) return;
+    uint32_t target = 0;
+    if (operation == mips::CommandKind::RunUntil) {
+        const auto name = target_->text().trimmed().toStdString();
+        if (displayed_.program && displayed_.program->textLabels.count(name)) target = static_cast<uint32_t>(displayed_.program->textLabels.at(name));
+        else if (!mips::parseAddress(name,target)) { status_->setText("Error: unknown run-to label"); return; }
     }
-    ++userRequests_; updateButtons();
+    try {
+        pending_.emplace_back(operation,controller_.request(operation,window(),target));
+        ++userRequests_; completionTimer_->start(); updateButtons();
+    } catch (const std::exception& error) { failed(error); }
+}
+void VirtualMachineGUI::poll() {
+    if (controllerFailed_ || !pending_.empty() || (!running_ && !windowDirty_)) return;
+    try {
+        pending_.emplace_back(mips::CommandKind::Observe,controller_.request(mips::CommandKind::Observe,window()));
+        windowDirty_ = false; completionTimer_->start();
+    } catch (const std::exception& error) { failed(error); }
 }
 void VirtualMachineGUI::collect() {
     while (!pending_.empty() && pending_.front().result.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-        const Request kind = pending_.front().kind;
-        try {
-            auto snapshot = pending_.front().result.get();
-            displayed_ = std::move(snapshot.machine); running_ = snapshot.running;
-            diagnostic_ = QString::fromStdString(snapshot.message);
-        } catch (const std::exception& error) {
-            diagnostic_ = "Error:1: " + QString::fromUtf8(error.what()); running_ = false;
-        }
+        const auto kind = pending_.front().kind;
+        mips::Reply reply;
+        try { reply = pending_.front().result.get(); }
+        catch (const std::exception& error) { failed(error); return; }
         pending_.pop_front();
-        if (kind != Request::Poll) --userRequests_;
-        render();
-        if (kind != Request::Poll) emit commandCompleted();
-        if (kind == Request::Step) emit stepped();
+        if (kind != mips::CommandKind::Observe) --userRequests_;
+        displayed_ = std::move(reply.state); running_ = reply.running; stopReason_ = reply.reason;
+        diagnostic_.clear();
+        if (reply.accepted) render();
+        else { render(); status_->setText(QString::fromStdString(reply.message)); }
+        if (kind != mips::CommandKind::Observe) emit commandCompleted();
+        if (kind == mips::CommandKind::Step) emit stepped();
     }
-    if (running_ && pending_.empty()) pending_.emplace_back(Request::Poll,controller_.snapshot());
+    if (pending_.empty()) {
+        completionTimer_->stop();
+        if (windowDirty_) poll();
+    }
+    if (running_) { if (!refreshTimer_->isActive()) refreshTimer_->start(); }
+    else refreshTimer_->stop();
+}
+void VirtualMachineGUI::memoryScrolled() {
+    if (rendering_ || displayed_.memorySize == 0) return;
+    const int row = memory_->rowAt(0);
+    if (row < 0) return;
+    const uint64_t base = (static_cast<uint64_t>(row)/512)*512;
+    if (base == windowBase_) return;
+    windowBase_ = base; windowDirty_ = true;
+    poll();
+}
+void VirtualMachineGUI::jumpMemory() {
+    uint32_t address = 0;
+    if (!mips::parseAddress(memoryAddress_->text().trimmed().toStdString(),address) || address >= displayed_.memorySize) {
+        status_->setText("Error: memory address out of bounds"); return;
+    }
+    memory_->scrollTo(memoryModel_->index(static_cast<int>(address),0),QAbstractItemView::PositionAtTop);
+    memory_->setCurrentIndex(memoryModel_->index(static_cast<int>(address),1));
+    windowBase_ = (address/512)*512; windowDirty_ = true; poll();
 }
 void VirtualMachineGUI::updateButtons() {
-    const bool valid = displayed_.getStatus() != mips::Status::Error && diagnostic_.isEmpty();
-    step_->setEnabled(valid && !running_ && userRequests_ == 0);
-    run_->setEnabled(valid && !running_ && userRequests_ == 0);
-    pause_->setEnabled(running_ && userRequests_ == 0);
+    const bool available = !controllerFailed_ && userRequests_ == 0;
+    step_->setEnabled(available && isReady() && !running_);
+    run_->setEnabled(available && isReady() && !running_);
+    until_->setEnabled(available && isReady() && !running_);
+    pause_->setEnabled(available && running_);
+    reset_->setEnabled(available && static_cast<bool>(displayed_.program));
+    reload_->setEnabled(available && !filename_.isEmpty());
 }
 void VirtualMachineGUI::highlightCurrent() {
     QList<QTextEdit::ExtraSelection> selections;
-    const auto pc = displayed_.readPC();
-    if (displayed_.program() && displayed_.program()->hasEntry && pc < displayed_.getInstrVector().size()) {
-        const auto line = displayed_.getInstruction(pc).line;
+    if (displayed_.program && displayed_.program->hasEntry && displayed_.pc < displayed_.program->instructions.size()) {
+        const auto line = displayed_.program->instructions[displayed_.pc].line;
         if (line > 0 && line <= static_cast<std::size_t>(text_->document()->blockCount())) {
-            const QTextBlock block = text_->document()->findBlockByNumber(static_cast<int>(line-1));
+            const auto block = text_->document()->findBlockByNumber(static_cast<int>(line-1));
             if (block.isValid()) {
                 QTextEdit::ExtraSelection selection;
                 selection.format.setBackground(QColor(Qt::yellow).lighter(160));
                 selection.format.setProperty(QTextFormat::FullWidthSelection,true);
-                selection.cursor = QTextCursor(block); // value object, no leaked allocation
-                selection.cursor.clearSelection(); selections.append(selection);
+                selection.cursor = QTextCursor(block); selections.append(selection);
             }
         }
     }
     text_->setExtraSelections(selections);
 }
 void VirtualMachineGUI::render() {
-    setCell(registersModel_,0,2,hex(displayed_.readPC()));
-    setCell(registersModel_,1,2,hex(displayed_.readHI()));
-    setCell(registersModel_,2,2,hex(displayed_.readLO()));
-    for (unsigned i=0;i<32;++i) setCell(registersModel_,static_cast<int>(i)+3,2,hex(displayed_.readReg(i)));
-    const int size = static_cast<int>(displayed_.memSize());
-    if (memoryModel_->rowCount() != size) memoryModel_->setRowCount(size);
-    for (int i=0;i<size;++i) {
-        setCell(memoryModel_,i,0,hex(static_cast<uint32_t>(i)));
-        setCell(memoryModel_,i,1,hex(displayed_.readMEM(static_cast<uint32_t>(i),1),2));
+    rendering_ = true;
+    std::array<uint32_t,35> values{};
+    values[0] = displayed_.pc; values[1] = displayed_.hi; values[2] = displayed_.lo;
+    std::copy(displayed_.registers.begin(),displayed_.registers.end(),values.begin()+3);
+    const bool newBoundary = !hasPrevious_ || previousSteps_ != displayed_.executed;
+    for (unsigned i=0;i<35;++i) {
+        setCell(registersModel_,static_cast<int>(i),2,hex(values[i]));
+        if (newBoundary) {
+            const bool changed = hasPrevious_ && previousRegisters_[i] != values[i];
+            registersModel_->setData(registersModel_->index(static_cast<int>(i),2),
+                changed ? QVariant(QBrush(QColor(220,237,255))) : QVariant(),Qt::BackgroundRole);
+        }
     }
+    previousRegisters_ = values; previousSteps_ = displayed_.executed; hasPrevious_ = true;
+    memoryModel_->update(displayed_);
     status_->setText(!diagnostic_.isEmpty() ? diagnostic_ :
-        (displayed_.getStatus() == mips::Status::Error ? QString::fromStdString(displayed_.error()) : "Ok"));
-    highlightCurrent(); updateButtons();
+        (displayed_.status == mips::Status::Error ? QString::fromStdString(displayed_.error) : "Ok"));
+    const QString mode = running_ ? "Running" : stopReason_ == mips::StopReason::TargetReached ? "Target reached" :
+        stopReason_ == mips::StopReason::StepLimit ? "Instruction budget reached" : displayed_.status == mips::Status::Error ? "Fault / not loaded" : "Paused";
+    executionStatus_->setText(mode+"  |  Steps: "+QString::number(static_cast<qulonglong>(displayed_.executed)));
+    highlightCurrent(); updateButtons(); rendering_ = false;
 }

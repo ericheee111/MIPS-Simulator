@@ -2,16 +2,30 @@
 #include <stdexcept>
 #include <utility>
 namespace mips {
-Machine::Machine() = default;
-Machine::Machine(Program program) : Machine(std::make_shared<const Program>(std::move(program))) {}
+Machine::Machine() { initialize(); }
+Machine::Machine(const Program& program)
+    : program_(std::make_shared<const Program>(program)), memory_(program.initialMemory) {
+    initialize();
+}
 Machine::Machine(std::shared_ptr<const Program> program)
-    : program_(std::move(program)), memory_(program_ ? Memory(program_->initialMemory) : Memory()) {
-    if (!program_) return;
-    pc_ = program_->entry;
-    if (!program_->hasEntry) { fault(1, "missing main instruction label"); return; }
-    if (pc_ >= program_->instructions.size()) { fault(1, "main does not name an instruction"); return; }
+    : program_(program ? std::make_shared<const Program>(*program) : nullptr),
+      memory_(program_ ? Memory(program_->initialMemory) : Memory()) {
+    initialize();
+}
+void Machine::initialize() {
+    registers_.fill(0); pc_ = program_ ? program_->entry : 0;
+    hi_ = lo_ = 0; executed_ = 0; diagnostic_ = Diagnostic();
+    if (!program_) { fault(1, "no program loaded", FaultCode::NoProgram); return; }
+    if (!program_->hasEntry) { fault(1, "missing main instruction label", FaultCode::Entry); return; }
+    if (pc_ >= program_->instructions.size()) { fault(1, "main does not name an instruction", FaultCode::Entry); return; }
     status_ = Status::Simulating;
     error_.clear();
+}
+void Machine::reset() {
+    // Allocate first, so allocation failure leaves the existing machine intact.
+    Memory initial = program_ ? Memory(program_->initialMemory) : Memory();
+    memory_ = std::move(initial);
+    initialize();
 }
 const std::vector<Instruction>& Machine::getInstrVector() const {
     static const std::vector<Instruction> empty;
@@ -23,7 +37,10 @@ bool Machine::B_labelExist(const std::string& name) const {
 bool Machine::D_labelExist(const std::string& name) const {
     return program_ && program_->dataLabels.count(name) != 0;
 }
-void Machine::fault(std::size_t line, const std::string& message) {
+void Machine::fault(std::size_t line, const std::string& message, FaultCode code) {
+    diagnostic_ = Diagnostic();
+    diagnostic_.code = code; diagnostic_.line = line; diagnostic_.pc = readPC();
+    diagnostic_.message = message;
     status_ = Status::Error;
     error_ = "Error:" + std::to_string(line) + ": " + message;
 }
@@ -48,11 +65,11 @@ uint64_t Machine::addressValue(const MemoryRef& address) const {
 bool Machine::step() {
     if (status_ == Status::Error) return false;
     const auto& code = program_->instructions;
-    if (pc_ >= code.size()) { fault(code.empty() ? 1 : code.back().line, "program counter out of bounds"); return false; }
+    if (pc_ >= code.size()) { fault(code.empty() ? 1 : code.back().line, "program counter out of bounds", FaultCode::ProgramCounter); return false; }
     const Instruction& ins = code[pc_];
     const OpInfo* info = opcodeInfo(ins.opcode);
     if (!info || !info->executable || (ins.threeOperand && info->form == Form::Divide)) {
-        fault(ins.line, std::string("unsupported execution instruction: ") + (info ? info->name : "unknown"));
+        fault(ins.line, std::string("unsupported execution instruction: ") + (info ? info->name : "unknown"), FaultCode::Unsupported);
         return false;
     }
     try {
@@ -77,7 +94,7 @@ bool Machine::step() {
             const int64_t b = signedValue(sourceValue(ins.source));
             const int64_t value = ins.opcode == Opcode::Add ? a + b : a - b;
             if (value < -2147483648LL || value > 2147483647LL) {
-                fault(ins.line, "signed arithmetic overflow");
+                fault(ins.line, "signed arithmetic overflow", FaultCode::Overflow);
                 return false;
             }
             writeRegister(ins.rd, static_cast<uint32_t>(value));
@@ -134,11 +151,15 @@ bool Machine::step() {
             }
             break;
         }
-        default: fault(ins.line, "unsupported execution instruction"); return false;
+        default: fault(ins.line, "unsupported execution instruction", FaultCode::Unsupported); return false;
         }
         pc_ = next;
         ++executed_;
         return true;
+    } catch (const MemoryError& error) {
+        fault(ins.line, error.what(), FaultCode::Memory);
+        diagnostic_.hasAddress = true; diagnostic_.address = error.address; diagnostic_.width = error.width;
+        return false;
     } catch (const std::out_of_range& error) {
         fault(ins.line, error.what());
         return false;

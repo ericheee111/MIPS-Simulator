@@ -1,0 +1,21 @@
+# This script runs only for an explicit Windows Qt runtime bundle.
+set(_directory "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@CMAKE_INSTALL_BINDIR@")
+if(CMAKE_INSTALL_CONFIG_NAME STREQUAL "Debug")
+  set(_configuration --debug)
+else()
+  set(_configuration --release)
+endif()
+execute_process(COMMAND "@MIPS_WINDEPLOYQT@" ${_configuration} --no-translations
+  --compiler-runtime --dir "${_directory}" "${_directory}/simmips.exe"
+  RESULT_VARIABLE _result)
+if(NOT _result EQUAL 0)
+  message(FATAL_ERROR "windeployqt failed: ${_result}")
+endif()
+# Do not silently distribute Qt without the applicable upstream license texts.
+foreach(_name LICENSE.LGPLv3 LICENSE.GPL3 LICENSE.FDL)
+  if(NOT EXISTS "@MIPS_QT_LICENSE_DIR@/${_name}")
+    message(FATAL_ERROR "Missing Qt license file ${_name}; set MIPS_QT_LICENSE_DIR")
+  endif()
+  file(INSTALL "@MIPS_QT_LICENSE_DIR@/${_name}"
+    DESTINATION "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@CMAKE_INSTALL_DATADIR@/mips-simulator/licenses/Qt5")
+endforeach()
