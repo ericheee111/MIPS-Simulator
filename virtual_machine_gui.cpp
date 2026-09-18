@@ -133,6 +133,9 @@ void VirtualMachineGUI::load(QString filename) {
     // All submission and completion errors, including pause/reset, are contained.
     try {
         controller_.request(mips::CommandKind::Pause).get();
+        // FIFO Pause acknowledges all earlier commands before stale GUI replies
+        // are discarded. A consumer future does not own the worker's promise;
+        // releasing it cannot cause broken_promise in promise::set_value().
         pending_.clear(); userRequests_ = 0; running_ = false; windowDirty_ = false;
         completionTimer_->stop(); refreshTimer_->stop();
         displayed_ = controller_.replace(mips::Machine()).get().state;

@@ -2,6 +2,13 @@
 #include <stdexcept>
 #include <utility>
 namespace mips {
+namespace {
+// Invalid address arithmetic is distinct from an invalid register/source operand.
+class AddressError : public std::out_of_range {
+public:
+    explicit AddressError(const char* message) : std::out_of_range(message) {}
+};
+}
 Machine::Machine() { initialize(); }
 Machine::Machine(const Program& program)
     : program_(std::make_shared<const Program>(program)), memory_(program.initialMemory) {
@@ -56,10 +63,10 @@ uint32_t Machine::sourceValue(const Source& source) const {
 uint64_t Machine::addressValue(const MemoryRef& address) const {
     // The parser bounds offsets to int32. Validate public IR too, before signed addition.
     if (address.offset < -2147483648LL || address.offset > 2147483647LL)
-        throw std::out_of_range("offset exceeds signed 32-bit range");
+        throw AddressError("offset exceeds signed 32-bit range");
     const int64_t effective = static_cast<int64_t>(sourceValue(address.base)) + address.offset;
     if (effective < 0 || effective > 4294967295LL)
-        throw std::out_of_range("effective address exceeds 32-bit range");
+        throw AddressError("effective address exceeds 32-bit range");
     return static_cast<uint64_t>(effective);
 }
 bool Machine::step() {
@@ -85,7 +92,7 @@ bool Machine::step() {
         case Opcode::Sw: memory_.write(addressValue(ins.address), 4, readReg(ins.rd)); break;
         case Opcode::La: {
             const uint64_t address = addressValue(ins.address);
-            if (!memory_.contains(address, 1)) throw std::out_of_range("address out of bounds");
+            if (!memory_.contains(address, 1)) throw AddressError("address out of bounds");
             writeRegister(ins.rd, static_cast<uint32_t>(address));
             break;
         }
@@ -160,8 +167,11 @@ bool Machine::step() {
         fault(ins.line, error.what(), FaultCode::Memory);
         diagnostic_.hasAddress = true; diagnostic_.address = error.address; diagnostic_.width = error.width;
         return false;
+    } catch (const AddressError& error) {
+        fault(ins.line, error.what(), FaultCode::Address);
+        return false;
     } catch (const std::out_of_range& error) {
-        fault(ins.line, error.what());
+        fault(ins.line, error.what(), FaultCode::Operand);
         return false;
     }
 }

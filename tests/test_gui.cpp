@@ -100,6 +100,27 @@ private slots:
         QCOMPARE(value(gui,11),QString("0x00000000"));
         QVERIFY(click(gui,"step")); QCOMPARE(value(gui,11),QString("0x00000009"));
     }
+    void reloadWithUncollectedObservation() {
+        VirtualMachineGUI gui;
+        gui.load(write(".text\nmain:\nj main\n"));
+        QVERIFY(click(gui,"run"));
+        auto refresh = gui.findChild<QTimer*>("refreshTimer");
+        auto completion = gui.findChild<QTimer*>("completionTimer");
+        QVERIFY(refresh); QVERIFY(completion);
+        refresh->stop();
+        // Queue one real observation without letting the GUI collect its future.
+        // load() synchronously waits for FIFO Pause before dropping stale replies.
+        QVERIFY(QMetaObject::invokeMethod(refresh,"timeout",Qt::DirectConnection));
+        QVERIFY(completion->isActive());
+        gui.load(write(".text\nmain:\nli $t0, 9\nend:\nj end\n"));
+        QVERIFY(gui.isReady());
+        QCOMPARE(value(gui,0),QString("0x00000000"));
+        QCOMPARE(value(gui,11),QString("0x00000000"));
+        QVERIFY(click(gui,"step"));
+        QCOMPARE(value(gui,11),QString("0x00000009"));
+        QVERIFY(!completion->isActive());
+        QVERIFY(!refresh->isActive());
+    }
     void automaticFaultAndRecovery() {
         VirtualMachineGUI gui;
         gui.load(write(".text\nmain:\nlw $t0, 1024\n"));

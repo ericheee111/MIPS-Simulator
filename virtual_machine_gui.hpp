@@ -1,6 +1,7 @@
 #ifndef VIRTUAL_MACHINE_GUI_HPP
 #define VIRTUAL_MACHINE_GUI_HPP
 #include "mips/controller.hpp"
+#include <QString>
 #include <QWidget>
 #include <deque>
 class QPlainTextEdit;
