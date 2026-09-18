@@ -107,4 +107,72 @@ previous scalar status. An explicit null-program check now handles that actual
 edge case; tests cover default/null construction, preserved sticky diagnostics,
 a moved-from source, its unaffected destination, and a controller before loading.
 Local validation after this guard passes **97 cases / 4807 assertions** and all
-six CTest targets. Final source identity and remote verification follow below.
+six CTest targets.
+
+## Final implementation verification
+
+Validated executable implementation: **`5de4bcd78ad5ef9e5d515e3bcbd232acda2b3d38`**.
+[CI run 35306647431](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431)
+completed successfully with all **12/12 jobs**. The documentation/evidence update
+following that commit changes no executable behavior. Current-head checks remain
+visible on [PR #1](https://github.com/ericheee111/MIPS-Simulator/pull/1).
+
+| Check | Executed result for this implementation |
+| --- | --- |
+| GCC, Clang, MSVC strict builds/tests | Passed; headless CI also builds and runs the benchmark |
+| C++ regressions | 97 cases / 4807 assertions |
+| CLI / public fixtures | 17 CLI cases; 21 fixtures match their original literals |
+| Package helpers / Qt deployment contract | 6 helper cases; 5 contract cases with configuration/failure subcases |
+| GUI | Linux Qt; native Windows Qt at scale factors 1 and 2; retained and new regression suites |
+| Memory/concurrency diagnostics | Separate ASan+UBSan and TSan jobs passed |
+| Static analysis | scan-build job passed |
+| Bounded fuzzing | Parser 317,786 runs; machine 904,079 runs; 31 seconds each, no reported crash |
+| Filtered core/runtime coverage | Lines 758/772 = 98.19%; branches 1214/1795 = 67.63%; GUI excluded |
+| Distribution | Linux and Windows headless archives; Windows Qt archive; isolated installed/extracted launch |
+| Independent local package execution | Downloaded Windows headless and Qt archives both passed on the development host, with developer/Qt search paths removed and a fresh working directory |
+
+### Final reviewer disposition
+
+The final implementation was independently reviewed by GitHub Copilot in
+[run 35306663279](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306663279).
+[Review 5244235158](https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244235158)
+used Lite effort, examined 94/95 changed files and reported one suppressed
+allocation-exception contract comment, not a new executable defect.
+That comment is addressed by documenting the actual API in README.md and
+parser.hpp: syntax/configured-limit errors use `false`/`error()`, while host
+resource failures such as `std::bad_alloc` may propagate, even while formatting
+an error. A parse attempt clears the old program and publishes only a complete
+new candidate. No unreliable promise of allocation-free diagnostics was added.
+The distinct null/moved-from case and all earlier accepted code findings have
+regression coverage. The GUI future-lifetime false positive has an
+[evidence-backed reply and resolved thread](https://github.com/ericheee111/MIPS-Simulator/pull/1#discussion_r4043766266).
+
+These are real independent AI review outputs with explicit dispositions. They
+are not a human audit or a claim that a `COMMENTED` GitHub review is a formal
+`APPROVED` event. The original timed-out local Codex invocation is excluded.
+
+### Durable evidence and package identities
+
+The checked-in [machine-readable evidence](validation/2026-09-18-followup-evidence.json)
+contains the source commit, exact CI jobs, original review outputs, artifact IDs,
+SHA256 hashes, coverage counts, fuzz summaries, PNG dimensions/hashes, and local
+package-launch results. Its SHA256 is
+`0c91b8753cf0a71fd4f1df2b2c29c4378f79b841bfa82198e1031d26bbc0dfd0`.
+The manifest records hashes for outer GitHub artifact ZIPs separately from the
+inner distributable CPack archives; they must not be confused.
+
+| Distributable archive | SHA256 |
+| --- | --- |
+| `MIPS-Simulator-1.1.0-Windows-AMD64-headless.zip` | `5bbbb7c0de90d696a8666bddc9f30c2eb05fd495019d0f5f8970e93381c7af3b` |
+| `MIPS-Simulator-1.1.0-Windows-AMD64-gui.zip` | `6db8418d50189610e9193a6c9ca83b6588af7f333aa308a6b17fbd6d13fc805c` |
+
+All three demo stages exist for both Windows scale settings. Initial native
+window captures are host-constrained (1028x700 and 1028x750); later normal and
+high-DPI captures are 1200x700 and 2400x1400. Their actual dimensions are retained
+rather than misreported as uniform. Automated state/font/launch checks and PNG
+presence are not manual visual, accessibility, theme, GPU or pristine-OS
+certification. Coverage and finite fuzzing are not proofs of absence of defects.
+
+No main-branch merge, version tag, stable release or project-wide license
+selection was performed. Existing local audit records remain outside these
+commits.

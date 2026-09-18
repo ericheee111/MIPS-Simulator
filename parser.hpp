@@ -9,6 +9,9 @@ using Instruction = mips::Instruction;
 class Parse {
 public:
     explicit Parse(std::size_t memoryBytes = mips::DefaultMemoryBytes);
+    // Syntax and configured input-limit failures return false with error().
+    // Host allocation failures may throw (including while formatting an error).
+    // Each attempt clears the previous program; no partial candidate is published.
     bool parse(const TokenList& tokens);
     VirtualMachine getVM() const;
     std::size_t getLine() const { return line_; }

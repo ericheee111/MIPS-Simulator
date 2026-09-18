@@ -72,7 +72,9 @@ Assembly literals are **decimal**; an explicit `+` or `-` selects the signed ran
 
 For course-undefined division by zero, this simulator deterministically retains HI/LO and advances PC. Signed `INT32_MIN / -1` retains the low 32-bit quotient and a zero remainder, without invoking host-language undefined behavior. These are **simulator policy choices**, not claims of universal hardware behavior.
 
-Limits: 4 MiB source, 100,000 instructions, 1024 bytes default memory. Library clients can select memory capacity with `Parse(bytes)`, up to 16 MiB. Allocation and address failures produce diagnostics, not unchecked host memory accesses.
+Limits: 4 MiB source, 100,000 instructions, 1024 bytes default memory. Library clients can select memory capacity with `Parse(bytes)`, up to 16 MiB. Configured input-limit violations and invalid addresses produce diagnostics rather than unchecked host memory accesses.
+
+`Parse::parse()` reports syntax and configured-limit errors through `false` and `error()`. Host resource exceptions such as `std::bad_alloc` may propagate, including while constructing a diagnostic string; this API is not `noexcept` and does not promise recovery from exhausted host memory. Each parse attempt clears the previous program and publishes a new one only after assembly succeeds, so an exception does not expose a partial candidate. `getVM()` can also allocate. Library callers must handle resource exceptions at their application boundary.
 
 ## Architecture
 

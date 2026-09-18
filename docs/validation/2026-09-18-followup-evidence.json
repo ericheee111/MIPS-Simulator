@@ -1,0 +1,391 @@
+{
+  "schema_version": 1,
+  "source_commit": "5de4bcd78ad5ef9e5d515e3bcbd232acda2b3d38",
+  "recorded_at": "2026-09-18T04:24:54.517073+00:00",
+  "repository": "ericheee111/MIPS-Simulator",
+  "pull_request": 1,
+  "scope": "Exact validated implementation before the evidence/documentation-only follow-up",
+  "ci": {
+    "id": 35306647431,
+    "name": "Build and verify",
+    "head_sha": "5de4bcd78ad5ef9e5d515e3bcbd232acda2b3d38",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431",
+    "created_at": "2026-09-18T04:21:26Z",
+    "jobs": [
+      {
+        "id": 105480103149,
+        "name": "coverage",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103149",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103258,
+        "name": "windows-qt-package",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103258",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103266,
+        "name": "sanitizers (address-undefined)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103266",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103291,
+        "name": "package-headless (ubuntu-24.04)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103291",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103306,
+        "name": "headless (windows-latest, default, msvc)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103306",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103328,
+        "name": "package-headless (windows-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103328",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103333,
+        "name": "static-analysis",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103333",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103337,
+        "name": "qt",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103337",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103356,
+        "name": "headless (ubuntu-24.04, g++, gcc)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103356",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103366,
+        "name": "sanitizers (thread)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103366",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103418,
+        "name": "fuzz",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103418",
+        "failed_steps": []
+      },
+      {
+        "id": 105480103422,
+        "name": "headless (ubuntu-24.04, clang++, clang)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431/job/105480103422",
+        "failed_steps": []
+      }
+    ]
+  },
+  "independent_reviews": [
+    {
+      "id": 5238900383,
+      "commit_id": "788a395c747572349ea22e73a9815b4fdca06b6a",
+      "state": "COMMENTED",
+      "body": "### \ud83d\udd35 Needs a closer look\n\nThe broad simulator, GUI, concurrency, and build-system changes require final human review.\n\n<details>\n<summary>Pull request overview</summary>\n\nModernizes the MIPS simulator with corrected semantics, isolated execution state, deterministic CLI/GUI control, and expanded validation.\n\n**Changes:**\n- Rebuilt parsing, memory, machine, and controller architecture.\n- Added GUI, CLI, fuzzing, fixtures, documentation, CI, and benchmarks.\n- Expanded regression and cross-platform validation coverage.\n</details>\n\n<details>\n<summary>File summaries</summary>\n\n| File | Description |\r\n|---|---|\r\n| `virtual_machine_gui.hpp` | GUI state and interface updates |\r\n| `virtual_machine_gui.cpp` | Controller-backed GUI execution |\r\n| `token.hpp` | Token API updates |\r\n| `token.cpp` | Token implementation updates |\r\n| `thread.hpp` | Removed legacy worker API |\r\n| `thread.cpp` | Removed legacy worker implementation |\r\n| `THIRD_PARTY.md` | Dependency and licensing notes |\r\n| `tests/vm/test20.asm` | Assembly fixture |\r\n| `tests/vm/test19.asm` | Assembly fixture |\r\n| `tests/vm/test18.asm` | Assembly fixture |\r\n| `tests/vm/test17.asm` | Assembly fixture |\r\n| `tests/vm/test16.asm` | Assembly fixture |\r\n| `tests/vm/test15.asm` | Assembly fixture |\r\n| `tests/vm/test14.asm` | Assembly fixture |\r\n| `tests/vm/test13.asm` | Assembly fixture |\r\n| `tests/vm/test12.asm` | Assembly fixture |\r\n| `tests/vm/test11.asm` | Assembly fixture |\r\n| `tests/vm/test10.asm` | Assembly fixture |\r\n| `tests/vm/test09.asm` | Assembly fixture |\r\n| `tests/vm/test08.asm` | Assembly fixture |\r\n| `tests/vm/test07.asm` | Assembly fixture |\r\n| `tests/vm/test06.asm` | Assembly fixture |\r\n| `tests/vm/test05.asm` | Assembly fixture |\r\n| `tests/vm/test04.asm` | Assembly fixture |\r\n| `tests/vm/test03.asm` | Assembly fixture |\r\n| `tests/vm/test02.asm` | Assembly fixture |\r\n| `tests/vm/test01.asm` | Assembly fixture |\r\n| `tests/vm/test00.asm` | Assembly fixture |\r\n| `tests/vm/README.md` | Fixture documentation |\r\n| `tests/test_regressions.cpp` | Regression tests |\r\n| `tests/test_hardening.cpp` | Hardening and fault tests |\r\n| `tests/test_gui.cpp` | GUI tests |\r\n| `tests/test_controller.cpp` | Controller tests |\r\n| `tests/test_cli.py` | CLI integration tests |\r\n| `test_parser.cpp` | Parser compatibility tests |\r\n| `src/program.cpp` | Instruction metadata |\r\n| `src/numbers.cpp` | Numeric parsing helpers |\r\n| `src/memory.cpp` | Checked memory implementation |\r\n| `src/machine.cpp` | Machine execution semantics |\r\n| `src/controller.cpp` | FIFO execution controller |\r\n| `src/cli.cpp` | CLI implementation |\r\n| `simmips.cpp` | Application entry point |\r\n| `scripts/recover_fixtures.py` | Fixture recovery utility |\r\n| `scripts/package_smoke.py` | Package smoke testing |\r\n| `README.md` | Usage and architecture documentation |\r\n| `parser.hpp` | Parser interface |\r\n| `lexer.cpp` | Bounded lexer |\r\n| `include/mips/program.hpp` | Program model |\r\n| `include/mips/numbers.hpp` | Numeric APIs |\r\n| `include/mips/memory.hpp` | Memory APIs |\r\n| `include/mips/machine.hpp` | Machine APIs |\r\n| `include/mips/diagnostic.hpp` | Diagnostic types |\r\n| `include/mips/controller.hpp` | Controller APIs |\r\n| `include/mips/cli.hpp` | CLI APIs |\r\n| `gui/source_editor.hpp` | Source editor interface |\r\n| `gui/source_editor.cpp` | Source editor implementation |\r\n| `gui/memory_model.hpp` | Memory model interface |\r\n| `gui/memory_model.cpp` | Lazy memory model |\r\n| `fuzz/README.md` | Fuzzing documentation |\r\n| `fuzz/parser_fuzzer.cpp` | Parser fuzz target |\r\n| `fuzz/machine_fuzzer.cpp` | Machine fuzz target |\r\n| `fuzz/corpus/sum_of_squares.asm` | Fuzz corpus |\r\n| `fuzz/corpus/counting_loop.asm` | Fuzz corpus |\r\n| `examples/sum_of_squares.asm` | Example program |\r\n| `examples/counting_loop.asm` | Example program |\r\n| `docs/VALIDATION.md` | Validation records |\r\n| `docs/REVIEW.md` | Review documentation |\r\n| `docs/MODERNIZATION.md` | Modernization plan |\r\n| `docs/FOLLOWUP.md` | Follow-up notes |\r\n| `docs/DEMO.md` | Demonstration guide |\r\n| `docs/ARCHITECTURE.md` | Architecture documentation |\r\n| `CMakeLists.txt` | Build and test configuration |\r\n| `cmake/DeployQt.cmake.in` | Qt deployment configuration |\r\n| `benchmarks/results-2026-09-17.json` | Benchmark results |\r\n| `benchmarks/README.md` | Benchmark documentation |\r\n| `benchmarks/controller-measurements.json` | Controller measurements |\r\n| `benchmarks/controller-before.csv` | Baseline measurements |\r\n| `benchmarks/controller-after.csv` | Updated measurements |\r\n| `benchmarks/controller_benchmark.cpp` | Controller benchmark |\r\n| `benchmarks/benchmark.cpp` | Benchmark executable |\r\n| `.gitignore` | Generated-file exclusions |\r\n| `.github/workflows/release.yml` | Release automation |\r\n| `.github/workflows/ci.yml` | Continuous integration |\r\n| `.github/workflows/baseline.yml` | Baseline validation |\r\n| `.gitattributes` | Repository and fixture handling |\n</details>\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 86/87 changed files\n- **Comments generated:** 0\n- **Review effort level:** Lite\n</details>\n\n---\n\n\ud83d\udca1 <a href=\"/ericheee111/MIPS-Simulator/new/main?filename=.github/skills/code-review/SKILL.md\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Add a `code-review` agent skill</a> or configure MCP servers for context-aware, tailored reviews. <a href=\"https://docs.github.com/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review?tool=webui#mcp-servers-and-agent-skills\" class=\"Link--inTextBlock\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more in the docs.</a>",
+      "html_url": "https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5238900383",
+      "submitted_at": "2026-09-17T16:57:28Z",
+      "reviewer": "copilot-pull-request-reviewer[bot]"
+    },
+    {
+      "id": 5239020916,
+      "commit_id": "51a55e177f269bfb12118a7a561ca36d44b1cfdd",
+      "state": "COMMENTED",
+      "body": "### \ud83d\udd35 Needs a closer look\n\nAddress the moderate review findings and update validation evidence before approval.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (3)\n\n**benchmarks/controller_benchmark.cpp:27**\n* The observer loop does not handle the controller's bounded-queue rejection. Under contention, `request(Observe)` can throw `std::runtime_error(\"execution command queue is full\")`; because this runs on a thread, the uncaught exception calls `std::terminate`, making the optional benchmark nondeterministically abort instead of recording a trial. Catch queue-full failures (or otherwise bound/retry submissions) and account for rejected observations.\n```\n                    controller.request(mips::CommandKind::Observe).get();\n```\n**docs/VALIDATION.md:3**\n* This validation record presents the older `e28b8d0...` run as evidence for the current head, while the PR description explicitly says the final matrix and Windows packaged launch are still pending for the current commit. Please either update this section with results for the reviewed commit or label these results as historical and keep the pending status explicit, so the documentation does not imply current-head verification that has not occurred.\n```\nRecorded on 2026-09-17. Validated implementation: `e28b8d0edaabee77af7f268096be875076aa8d62`. Documentation-only follow-ups do not change the measured implementation. The PR checks show the result for its current head.\n```\n**token.hpp:43**\n* This changes the public accessor from returning an owning `std::string` to returning a reference into the `Token`. That introduces a dangling-reference hazard for existing callers that bind the result from a temporary (for example, `const auto& value = Token(...).value()`), whereas the previous API safely returned a value. Preserve the value-returning API, or introduce a separately named reference accessor and document its lifetime so this optimization does not silently break clients.\n\n- **Files reviewed:** 88/89 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>",
+      "html_url": "https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5239020916",
+      "submitted_at": "2026-09-17T17:09:59Z",
+      "reviewer": "copilot-pull-request-reviewer[bot]"
+    },
+    {
+      "id": 5244123749,
+      "commit_id": "cf47fe3ab3188d0d5c64c81870169a9f936f38fc",
+      "state": "COMMENTED",
+      "body": "### \ud83d\udfe1 Changes recommended\n\nResolve the GUI pending-future/controller failure and correct address fault classification before approval.\n\n*Get a fresh assessment by requesting another Copilot review.*\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (2)\n\n**src/machine.cpp:165**\n* All `std::out_of_range` failures from `addressValue` (including an effective address outside the 32-bit range and `la`'s out-of-memory address) are converted to the default `FaultCode::Operand` here. This leaves the public `FaultCode::Address` unused and causes frontends inspecting structured diagnostics to misclassify address faults; distinguish address-validation failures or pass `FaultCode::Address` for those paths.\n**virtual_machine_gui.hpp:3**\n* This public header uses `QString` by value and in a function signature, but no Qt string header is included; it currently relies on `QWidget`'s transitive includes. That makes the header fragile for standalone consumers and can break with Qt header changes. Include `<QString>` explicitly here.\n\n- **Files reviewed:** 93/94 changed files\n- **Comments generated:** 1\n- **Review effort level:** Lite\n</details>",
+      "html_url": "https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244123749",
+      "submitted_at": "2026-09-18T04:01:47Z",
+      "reviewer": "copilot-pull-request-reviewer[bot]"
+    },
+    {
+      "id": 5244175074,
+      "commit_id": "f0e6793012ec532296a824cef48e03f7782bdd7f",
+      "state": "COMMENTED",
+      "body": "### \ud83d\udd35 Needs a closer look\n\nCorrect the invalid control-flow target diagnostic classification before approval.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (1)\n\n**src/machine.cpp:140**\n* An out-of-range taken jump or branch is thrown as `std::out_of_range` here and then caught by the generic handler below as `FaultCode::Operand`. That misclassifies an invalid control-flow target (and makes the structured diagnostic less useful); report it as `FaultCode::ProgramCounter` or use a dedicated target exception before the generic operand catch.\n\n- **Files reviewed:** 94/95 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>",
+      "html_url": "https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244175074",
+      "submitted_at": "2026-09-18T04:11:18Z",
+      "reviewer": "copilot-pull-request-reviewer[bot]"
+    },
+    {
+      "id": 5244202469,
+      "commit_id": "c90cd99f6ca7c008555913e317ab2b1e131af6f6",
+      "state": "COMMENTED",
+      "body": "### \ud83d\udfe1 Changes recommended\n\n`Machine::step()` can dereference a null program and crash instead of safely returning after an error.\n\n*Get a fresh assessment by requesting another Copilot review.*\n\n<details>\n<summary>Review details</summary>\n\n- **Files reviewed:** 94/95 changed files\n- **Comments generated:** 1\n- **Review effort level:** Lite\n</details>",
+      "html_url": "https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244202469",
+      "submitted_at": "2026-09-18T04:17:30Z",
+      "reviewer": "copilot-pull-request-reviewer[bot]"
+    },
+    {
+      "id": 5244235158,
+      "commit_id": "5de4bcd78ad5ef9e5d515e3bcbd232acda2b3d38",
+      "state": "COMMENTED",
+      "body": "### \ud83d\udd35 Needs a closer look\n\n`parser.cpp` does not consistently convert allocation failures into documented diagnostics.\n\n<details>\n<summary>Review details</summary>\n\n### Suppressed comments (1)\n\n**parser.cpp:243**\n* `Parse::parse` only converts `ParseError` into the documented `false`/diagnostic result; allocation failures from `std::make_shared` or the assembler instead escape as `std::bad_alloc`. This contradicts the stated library contract that allocation failures produce diagnostics and makes callers such as the GUI depend on exception handling rather than the parser's error API. Catch allocation failures here (and discard the candidate) and populate `error_` consistently, or revise the public contract/documentation.\n\n- **Files reviewed:** 94/95 changed files\n- **Comments generated:** 0 new\n- **Review effort level:** Lite\n</details>",
+      "html_url": "https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244235158",
+      "submitted_at": "2026-09-18T04:24:09Z",
+      "reviewer": "copilot-pull-request-reviewer[bot]"
+    }
+  ],
+  "review_disposition": "Executable findings were fixed or disproved by regression evidence. The latest allocation-exception contract finding is addressed in README.md and parser.hpp by documenting propagation, not by promising allocation-free diagnostics. Workflow success is not a formal approval.",
+  "artifact_hash_meaning": "sha256 is for the downloaded outer GitHub artifact ZIP; package_sha256 in local_packages is for the inner distributable CPack archive.",
+  "artifacts": [
+    {
+      "name": "fuzz-evidence",
+      "id": 10532375322,
+      "bytes": 150421,
+      "sha256": "80d9759d1ef0d062cc95d83aa55573e28d2e438ebf61a162ce8104f6632c8077",
+      "log_summaries": [
+        {
+          "path": "fuzz-results\\machine.log",
+          "summary_lines": [
+            "#904079\tDONE   cov: 721 ft: 774 corp: 61/1466b lim: 256 exec/s: 29163 rss: 461Mb",
+            "Done 904079 runs in 31 second(s)"
+          ]
+        },
+        {
+          "path": "fuzz-results\\parser.log",
+          "summary_lines": [
+            "#317786\tDONE   cov: 1749 ft: 6319 corp: 330/30Kb lim: 566 exec/s: 10251 rss: 475Mb",
+            "Done 317786 runs in 31 second(s)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "package-headless-windows-latest",
+      "id": 10532375260,
+      "bytes": 726178,
+      "sha256": "ede57d485128f1c514d56d7e4bd6a3f0357b10c0b101967577170c9e4aa23f88"
+    },
+    {
+      "name": "qt-tests",
+      "id": 10532240463,
+      "bytes": 504958,
+      "sha256": "03e654295ed142197096ec7575814acf1284039729322a304514e4f17f4eac96",
+      "screenshots": [
+        {
+          "path": "gui-screenshot.png",
+          "width": 1200,
+          "height": 700,
+          "sha256": "9f4196ea0feb8e64da6b730ca7d7e6ee37c979a9660e339e00275d9a5024cfd2"
+        },
+        {
+          "path": "demo\\01-loaded.png",
+          "width": 1200,
+          "height": 700,
+          "sha256": "b46b9b36541d811f0f2ee58c76d8b59b8e02519f73af1f27269817a87f971137"
+        },
+        {
+          "path": "demo\\02-stepped.png",
+          "width": 1200,
+          "height": 700,
+          "sha256": "cd253afb15ac678e7f6a03583f6f130ecc6b0ed7a0749f75faa5ab323fe0edb5"
+        },
+        {
+          "path": "demo\\03-result.png",
+          "width": 1200,
+          "height": 700,
+          "sha256": "a220647a7945dd15eebca9164e5c7807ffd4231b130bbb0f8096f0535c7e4048"
+        }
+      ],
+      "log_summaries": [
+        {
+          "path": "Testing\\Temporary\\LastTest.log",
+          "summary_lines": [
+            "All tests passed (4807 assertions in 97 test cases)",
+            "Ran 17 tests in 0.260s",
+            "Ran 6 tests in 0.006s",
+            "Ran 5 tests in 0.057s",
+            "Totals: 23 passed, 0 failed, 0 skipped, 0 blacklisted, 1188ms",
+            "Totals: 12 passed, 0 failed, 0 skipped, 0 blacklisted, 879ms"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "package-headless-ubuntu-24.04",
+      "id": 10531960993,
+      "bytes": 102318,
+      "sha256": "4d3e99b9d2418675dc4410cff2cbf342a68e6f239be61204bd0387ba14b6f552"
+    },
+    {
+      "name": "coverage",
+      "id": 10531681686,
+      "bytes": 84829,
+      "sha256": "961326fd8805533507e54f0d63b375225a1971a355ad5b3d6cc99548f797ecca",
+      "coverage": {
+        "line-rate": "0.9818652849740933",
+        "branch-rate": "0.6763231197771588",
+        "lines-covered": "758",
+        "lines-valid": "772",
+        "branches-covered": "1214",
+        "branches-valid": "1795",
+        "complexity": "0.0",
+        "timestamp": "1789705338",
+        "version": "gcovr 7.0"
+      },
+      "log_summaries": [
+        {
+          "path": "Testing\\Temporary\\LastTest.log",
+          "summary_lines": [
+            "All tests passed (4807 assertions in 97 test cases)",
+            "Ran 17 tests in 0.104s",
+            "Ran 6 tests in 0.006s",
+            "Ran 5 tests in 0.059s"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "package-windows-qt",
+      "id": 10530904570,
+      "bytes": 21401636,
+      "sha256": "190d8b794d239966c118b32cbdc5633bed2057f7633346f32dacab92334e353b"
+    },
+    {
+      "name": "windows-qt-evidence",
+      "id": 10530554922,
+      "bytes": 290726,
+      "sha256": "3d408d502cbb1162e974cf0ea7e5e2831dc3a887721d21e9df4ced973ec5e8ff",
+      "screenshots": [
+        {
+          "path": "demo\\01-loaded.png",
+          "width": 1028,
+          "height": 700,
+          "sha256": "34a172e952cb5b5fe755081005b8acabc9def95b7bb12eb05f0da5c2dc8f80d0"
+        },
+        {
+          "path": "demo\\02-stepped.png",
+          "width": 1200,
+          "height": 700,
+          "sha256": "17fce2bdf98f1f2d9c74f46b7f8fa213d7a952ec2bcf2a9d6d1a8f96be088dcc"
+        },
+        {
+          "path": "demo\\03-result.png",
+          "width": 1200,
+          "height": 700,
+          "sha256": "c4f64ea715a31d496088e13a5192d52ae9b4d06deea629acbe1907599c16d0ae"
+        },
+        {
+          "path": "demo-high-dpi\\01-loaded.png",
+          "width": 1028,
+          "height": 750,
+          "sha256": "bf72a3dd7ca0a5917fd800d933f044349b2eb1b60d85adae59b3c925fe0442dd"
+        },
+        {
+          "path": "demo-high-dpi\\02-stepped.png",
+          "width": 2400,
+          "height": 1400,
+          "sha256": "893108600b6c6fa6221b773ed21930b396077776ff1053493c4e3110f0d33c48"
+        },
+        {
+          "path": "demo-high-dpi\\03-result.png",
+          "width": 2400,
+          "height": 1400,
+          "sha256": "0ee4044f49a2d30b7824abac206c6c8325f0b4c9c9b0762026c45831deedce68"
+        }
+      ],
+      "log_summaries": [
+        {
+          "path": "Testing\\Temporary\\LastTest.log",
+          "summary_lines": []
+        }
+      ]
+    }
+  ],
+  "local_packages": {
+    "run": 35306647431,
+    "host": "Windows local development machine",
+    "recorded_at": "2026-09-18T04:26:52.572826+00:00",
+    "pristine_os_certification": false,
+    "results": [
+      {
+        "artifact": "package-headless-windows-latest",
+        "artifact_id": 10532375260,
+        "package": "MIPS-Simulator-1.1.0-Windows-AMD64-headless.zip",
+        "package_sha256": "5bbbb7c0de90d696a8666bddc9f30c2eb05fd495019d0f5f8970e93381c7af3b",
+        "gui": false,
+        "status": "pass",
+        "checks": [
+          "app-local runtime",
+          "version",
+          "deterministic CLI",
+          "isolated PATH and cwd"
+        ]
+      },
+      {
+        "artifact": "package-windows-qt",
+        "artifact_id": 10530904570,
+        "package": "MIPS-Simulator-1.1.0-Windows-AMD64-gui.zip",
+        "package_sha256": "6db8418d50189610e9193a6c9ca83b6588af7f333aa308a6b17fbd6d13fc805c",
+        "gui": true,
+        "status": "pass",
+        "checks": [
+          "app-local runtime",
+          "version",
+          "deterministic CLI",
+          "isolated PATH and cwd",
+          "offscreen GUI launch/close",
+          "native Windows GUI launch/close",
+          "Qt plugins, qt.conf and upstream licenses"
+        ]
+      }
+    ]
+  },
+  "local_cpp_regression": {
+    "cases": 97,
+    "assertions": 4807,
+    "ctest_targets_passed": 6,
+    "configuration": "Windows MinGW GCC 16.1.0, C++11, STRICT=ON, Release, GUI=OFF, benchmarks=ON; matching compiler runtime first on process PATH"
+  },
+  "limitations": [
+    "Copilot reviews used Lite effort and are not a human audit.",
+    "Coverage is the configured core/runtime subset, not GUI or whole-project coverage.",
+    "Fuzzing is bounded and does not establish absence of defects.",
+    "Native Windows initial demo frames have host-constrained sizes; exact dimensions are retained, not normalized or claimed to be uniform.",
+    "No pristine-OS, manual visual, GPU/theme or accessibility certification.",
+    "No main merge, release tag, stable publication, or project-wide license decision."
+  ]
+}
