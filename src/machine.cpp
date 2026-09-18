@@ -71,6 +71,9 @@ uint64_t Machine::addressValue(const MemoryRef& address) const {
 }
 bool Machine::step() {
     if (status_ == Status::Error) return false;
+    // Default/null construction is already a sticky NoProgram error. Moving a
+    // valid Machine can instead leave a null program with its old scalar status.
+    if (!program_) { fault(1, "no program loaded", FaultCode::NoProgram); return false; }
     const auto& code = program_->instructions;
     if (pc_ >= code.size()) { fault(code.empty() ? 1 : code.back().line, "program counter out of bounds", FaultCode::ProgramCounter); return false; }
     const Instruction& ins = code[pc_];

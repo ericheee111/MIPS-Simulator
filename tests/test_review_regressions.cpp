@@ -87,6 +87,42 @@ TEST_CASE("Only taken invalid control-flow targets report ProgramCounter", "[rev
     }
 }
 
+TEST_CASE("Empty and moved-from machines fail safely without losing sticky diagnostics", "[review][machine]") {
+    for (unsigned mode = 0; mode < 2; ++mode) {
+        mips::Machine empty = mode == 0 ? mips::Machine()
+            : mips::Machine(std::shared_ptr<const mips::Program>());
+        const auto original = empty.diagnostic();
+        const auto message = empty.error();
+        for (unsigned repeat = 0; repeat < 3; ++repeat) {
+            REQUIRE_FALSE(empty.step());
+            REQUIRE(empty.diagnostic().code == mips::FaultCode::NoProgram);
+            REQUIRE(empty.diagnostic().message == original.message);
+            REQUIRE(empty.diagnostic().line == original.line);
+            REQUIRE(empty.error() == message);
+            REQUIRE(empty.executedSteps() == 0);
+        }
+    }
+    mips::Machine source(program(mips::Opcode::Nop));
+    mips::Machine destination(std::move(source));
+    REQUIRE_FALSE(source.program());
+    REQUIRE_FALSE(source.step());
+    REQUIRE(source.diagnostic().code == mips::FaultCode::NoProgram);
+    REQUIRE(destination.step());
+    REQUIRE(destination.executedSteps() == 1);
+    source = mips::Machine(program(mips::Opcode::Nop));
+    REQUIRE(source.step());
+}
+
+TEST_CASE("Controller before loading keeps the NoProgram diagnostic", "[review][controller]") {
+    mips::ExecutionController controller;
+    const auto step = await(controller.request(mips::CommandKind::Step));
+    REQUIRE(step.state.diagnostic.code == mips::FaultCode::NoProgram);
+    REQUIRE(step.state.executed == 0);
+    REQUIRE_FALSE(step.running);
+    REQUIRE(await(controller.replace(mips::Machine(program(mips::Opcode::Nop)))).accepted);
+    REQUIRE(await(controller.request(mips::CommandKind::Step)).state.executed == 1);
+}
+
 TEST_CASE("Destroying a consumer future leaves its provider usable", "[review][concurrency]") {
     std::promise<int> provider;
     { auto consumer = provider.get_future(); REQUIRE(consumer.valid()); }

@@ -95,6 +95,16 @@ cover `j` and taken/not-taken paths for all six conditional branches, including
 failure atomicity; a not-taken invalid target remains unexecuted and is not a fault.
 
 After this last diagnostic fix, local validation passes **95 Catch cases / 4760
-assertions** and all six CTest targets. The revised source's final independent
-review and full remote matrix must still be checked; the earlier green runs are
-not substituted for a newer source revision.
+assertions** and all six CTest targets. Candidate
+`c90cd99f6ca7c008555913e317ab2b1e131af6f6` passed all 12 jobs in
+[run 35306176996](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306176996).
+The next independent [review 5244202469](https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244202469)
+(Lite, 94/95 files) raised null-program dereferencing in `step()`.
+Default/null construction already returns a sticky `NoProgram` error before
+that dereference, so the review's default-construction example is not a crash.
+However, moving a valid Machine can leave its source with a null program and its
+previous scalar status. An explicit null-program check now handles that actual
+edge case; tests cover default/null construction, preserved sticky diagnostics,
+a moved-from source, its unaffected destination, and a controller before loading.
+Local validation after this guard passes **97 cases / 4807 assertions** and all
+six CTest targets. Final source identity and remote verification follow below.
