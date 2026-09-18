@@ -3,7 +3,6 @@
 import argparse
 import os
 import pathlib
-import shutil
 import stat
 import subprocess
 import tarfile
@@ -30,9 +29,34 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
-def safe_extract(archive, destination):
-    """Only regular files/directories under a fresh destination; bounded archives."""
+def _copy_member(source, sink, declared_size, budget):
+    """Bound actual output independently of archive metadata/backend behavior."""
+    require(0 <= declared_size <= budget, 'archive resource limit exceeded')
+    copied = 0
+    while True:
+        # Probe at most one byte beyond each limit; reject before writing excess.
+        chunk = source.read(min(65536, declared_size-copied+1, budget-copied+1))
+        if not chunk:
+            break
+        require(len(chunk) <= budget-copied, 'archive resource limit exceeded')
+        require(len(chunk) <= declared_size-copied, 'archive member size mismatch')
+        sink.write(chunk)
+        copied += len(chunk)
+    require(copied == declared_size, 'archive member size mismatch')
+    return copied
+
+
+def safe_extract(archive, destination, max_bytes=512*1024*1024, max_entries=10000):
+    """Extract package files into a fresh private destination with output limits.
+
+    Metadata and actual copied bytes are checked independently. These bounds do
+    not limit the archive library's metadata parsing, decompressor memory or CPU;
+    this package-test helper is not a sandbox for arbitrary untrusted archives.
+    The caller owns the temporary destination, including cleanup after failure.
+    """
+    require(max_bytes >= 0 and max_entries > 0, 'invalid archive resource limits')
     total = 0
+    written = 0
     count = 0
 
     def target(name, size):
@@ -40,9 +64,10 @@ def safe_extract(archive, destination):
         path = pathlib.PurePosixPath(name)
         require(not path.is_absolute() and '..' not in path.parts and
                 '\\' not in name and ':' not in name, 'unsafe archive path: '+name)
+        require(size >= 0, 'negative archive member size')
         total += size
         count += 1
-        require(total <= 512*1024*1024 and count <= 10000, 'archive resource limit exceeded')
+        require(total <= max_bytes and count <= max_entries, 'archive resource limit exceeded')
         result = destination.joinpath(*path.parts)
         result.parent.mkdir(parents=True, exist_ok=True)
         return result
@@ -57,7 +82,7 @@ def safe_extract(archive, destination):
                     output.mkdir(parents=True, exist_ok=True)
                 else:
                     with package.open(entry) as source, output.open('wb') as sink:
-                        shutil.copyfileobj(source, sink)
+                        written += _copy_member(source, sink, entry.file_size, max_bytes-written)
     else:
         with tarfile.open(archive) as package:
             for entry in package:
@@ -67,7 +92,7 @@ def safe_extract(archive, destination):
                     output.mkdir(parents=True, exist_ok=True)
                 else:
                     with package.extractfile(entry) as source, output.open('wb') as sink:
-                        shutil.copyfileobj(source, sink)
+                        written += _copy_member(source, sink, entry.size, max_bytes-written)
                     output.chmod(entry.mode & 0o777)
 
 

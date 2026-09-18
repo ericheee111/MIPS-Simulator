@@ -109,7 +109,11 @@ a moved-from source, its unaffected destination, and a controller before loading
 Local validation after this guard passes **97 cases / 4807 assertions** and all
 six CTest targets.
 
-## Final implementation verification
+## Verified checkpoint before archive-copy hardening
+
+The following results and JSON manifest are an immutable checkpoint, not an
+implicit claim about every later PR head. The latest changes are recorded in the
+last section and the PR's corresponding review/check timeline.
 
 Validated executable implementation: **`5de4bcd78ad5ef9e5d515e3bcbd232acda2b3d38`**.
 [CI run 35306647431](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35306647431)
@@ -176,3 +180,37 @@ certification. Coverage and finite fuzzing are not proofs of absence of defects.
 No main-branch merge, version tag, stable release or project-wide license
 selection was performed. Existing local audit records remain outside these
 commits.
+
+## Archive-copy hardening continuation
+
+The documentation checkpoint `9b3797ae85632d99857eb3791ce626f7a415a86c`
+passed all 12 jobs in [run 35307231639](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35307231639).
+Independent [review 5244274227](https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244274227)
+requested explicit actual-byte accounting during archive extraction. That request
+is addressed as defense in depth; a mocked inconsistent stream is not evidence
+of a reproduced exploit against Python's standard archive readers.
+
+Both ZIP and TAR paths now use a bounded copy routine that checks the observed
+byte count against the declared member size and the archive's remaining output
+budget before each write. Truncation, extra output, invalid budgets and excessive
+entry counts fail explicitly. Copy buffers are capped at 64 KiB; the default
+aggregate output cap remains 512 MiB with at most 10,000 archive entries.
+These limits apply to files written by this helper, not archive metadata parsing,
+decompressor CPU or memory. The caller supplies a fresh private temporary
+directory and owns cleanup. This is an internal package-verification helper,
+not an arbitrary-untrusted-archive sandbox; see Python's
+[documented decompression limitations](https://docs.python.org/3/library/zipfile.html#decompression-pitfalls).
+
+Local strict C++11 Release validation after this change: all six CTest targets
+passed, including 97 C++ cases / 4807 assertions, 17 CLI cases, 21 fixtures,
+12 packaging-helper cases, five Qt deployment-contract cases, and 18 benchmark
+trials. The packaging cases exercise both ZIP/TAR code paths, exact limits,
+short/extra streams, aggregate budgets, and small compressed/empty members.
+The updated helper also extracted and successfully launched the already-recorded
+Windows headless and GUI archives from run 35306647431 on the local host, using
+isolated PATH/working directories. Those are historical binary artifacts tested
+with the updated helper, not new binaries mislabeled as this candidate.
+
+The source commit carrying these changes requires its own complete CI and
+independent review. The immutable checkpoint JSON above is deliberately retained;
+final post-push results belong to the corresponding PR check/review timeline.
