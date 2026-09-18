@@ -1,4 +1,5 @@
 /build*/
+/.ai-bridge/
 /Coverage_Report/
 /coverage*.html
 /coverage*.xml

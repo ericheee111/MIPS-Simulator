@@ -95,8 +95,12 @@ def verify(prefix, gui=False):
                 cli.stdout+'\n'+cli.stderr)
         if gui:
             if os.name == 'nt':
+                require((prefix/'bin'/'qt.conf').is_file(), 'missing isolated Qt plugin configuration')
                 for plugin in ('qoffscreen.dll', 'qwindows.dll'):
                     require((prefix/'bin'/'platforms'/plugin).is_file(), 'missing '+plugin)
+                for name in ('LICENSE.LGPLv3', 'LICENSE.GPL3', 'LICENSE.FDL'):
+                    require((prefix/'share'/'mips-simulator'/'licenses'/'Qt5'/name).is_file(),
+                            'missing Qt license '+name)
             for platform in (('offscreen', 'windows') if os.name == 'nt' else ('offscreen',)):
                 env['QT_QPA_PLATFORM'] = platform
                 run(['--gui', str(example), '--smoke-test'])

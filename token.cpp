@@ -9,17 +9,18 @@ TokenType Token::type() const { return m_type; }
 
 std::size_t Token::line() const { return m_line; }
 
-const std::string& Token::value() const { return m_value; }
+std::string Token::value() const { return m_value; }
+const std::string& Token::valueRef() const & noexcept { return m_value; }
 
 bool operator==(const Token &t1, const Token &t2) {
   return (t1.type() == t2.type()) && (t1.line() == t2.line()) &&
-         (t1.value() == t2.value());
+         (t1.valueRef() == t2.valueRef());
 }
 
 bool operator!=(const Token &t1, const Token &t2) { return !(t1 == t2); }
 
 std::ostream &operator<<(std::ostream &oss, const Token &t) {
-  oss << "Token: type(" << t.type() << ") value (" << t.value()
+  oss << "Token: type(" << t.type() << ") value (" << t.valueRef()
       << ") source line (" << t.line() << ")";
 
   return oss;

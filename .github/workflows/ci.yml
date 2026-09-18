@@ -36,7 +36,7 @@ jobs:
         run: |
           args=()
           if [ "${{ matrix.compiler }}" != default ]; then args+=("-DCMAKE_CXX_COMPILER=${{ matrix.compiler }}"); fi
-          cmake -S . -B build -DSTRICT=ON -DCMAKE_BUILD_TYPE=Release "${args[@]}"
+          cmake -S . -B build -DSTRICT=ON -DMIPS_BUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release "${args[@]}"
       - run: cmake --build build --config Release --parallel 2
       - run: ctest --test-dir build -C Release --output-on-failure
       - if: always()

@@ -1,6 +1,8 @@
-# Validation record
+# Historical validation record — first modernization phase
 
-Recorded on 2026-09-17. Validated implementation: `e28b8d0edaabee77af7f268096be875076aa8d62`. Documentation-only follow-ups do not change the measured implementation. The PR checks show the result for its current head.
+Recorded on 2026-09-17 for implementation `e28b8d0edaabee77af7f268096be875076aa8d62`. **The results below apply only to that first-phase implementation and its explicitly named runs, not to the current PR head.** Later follow-up commits change production code, the GUI, tests, and packaging; their results must be checked separately.
+
+See [follow-up validation](FOLLOWUP_VALIDATION.md) for the resumed candidate, actual independent review output, executed checks, and any pending platform/CI gates. Historical green runs and old coverage percentages must not be presented as verification of newer code.
 
 ## Baseline
 

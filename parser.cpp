@@ -229,8 +229,8 @@ bool Parse::parse(const TokenList& tokens) {
         std::size_t size = 0;
         for (const Token& token : tokens) {
             line_ = token.line();
-            if (token.value().size() > mips::MaxSourceBytes - size) throw ParseError(line_, "token input too large");
-            size += token.value().size();
+            if (token.valueRef().size() > mips::MaxSourceBytes - size) throw ParseError(line_, "token input too large");
+            size += token.valueRef().size();
         }
         if (tokens.size() > mips::MaxSourceBytes) throw ParseError(line_, "too many tokens");
         Assembler assembler(memoryBytes_);
