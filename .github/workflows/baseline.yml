@@ -1,0 +1,48 @@
+name: Original baseline audit
+on:
+  push:
+    branches: [refactor/simulator-correctness]
+    paths: [.github/workflows/baseline.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export original source and Git history
+        run: |
+          mkdir -p evidence baseline
+          git archive 74731fa1af9b1997bcbaa3b01eb88fe7d3486677 | tar -x -C baseline
+          git bundle create evidence/baseline.bundle --all
+          git archive --format=tar 74731fa1af9b1997bcbaa3b01eb88fe7d3486677 -o evidence/original-source.tar
+          g++ --version > evidence/compiler.txt
+      - name: Install baseline build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qtbase5-dev ninja-build
+      - name: Record unmodified build and tests
+        shell: bash
+        run: |
+          set +e
+          cmake -S baseline -B baseline-build -G Ninja > evidence/configure.log 2>&1
+          configure_rc=$?
+          cmake --build baseline-build -j2 > evidence/build.log 2>&1
+          build_rc=$?
+          QT_QPA_PLATFORM=offscreen ctest --test-dir baseline-build --output-on-failure --timeout 20 > evidence/ctest.log 2>&1
+          test_rc=$?
+          printf 'configure=%s\nbuild=%s\nctest=%s\n' "$configure_rc" "$build_rc" "$test_rc" | tee evidence/result.txt
+          cat evidence/build.log evidence/ctest.log
+          test "$configure_rc" -eq 0 && test "$build_rc" -eq 0 && test "$test_rc" -eq 0
+      - name: Preserve evidence even when original code fails
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: baseline-evidence
+          path: evidence/
+          retention-days: 14

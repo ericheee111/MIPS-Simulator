@@ -1,0 +1,40 @@
+# This script runs only for an explicit Windows Qt runtime bundle.
+set(_directory "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@CMAKE_INSTALL_BINDIR@")
+if(CMAKE_INSTALL_CONFIG_NAME STREQUAL "Debug")
+  set(_configuration --debug)
+  set(_suffix d)
+else()
+  set(_configuration --release)
+  set(_suffix "")
+endif()
+# Qt5 windeployqt does not select the offscreen QPA plugin by default. Our
+# isolated package checks exercise it as well as the native Windows backend.
+# Take it from the same Qt installation and configuration used to build.
+set(_offscreen "@MIPS_QT_PLUGINS_DIR@/platforms/qoffscreen${_suffix}.dll")
+if(NOT EXISTS "${_offscreen}" OR IS_DIRECTORY "${_offscreen}")
+  message(FATAL_ERROR "Missing required Qt offscreen plugin: ${_offscreen}")
+endif()
+file(INSTALL "${_offscreen}" DESTINATION "${_directory}/platforms")
+# Include the plugin as an input so its dependencies are scanned too.
+execute_process(COMMAND "@MIPS_WINDEPLOYQT@" ${_configuration} --no-translations
+  --no-compiler-runtime --dir "${_directory}" "${_directory}/simmips.exe"
+  "${_directory}/platforms/qoffscreen${_suffix}.dll"
+  RESULT_VARIABLE _result)
+if(NOT "${_result}" STREQUAL "0")
+  message(FATAL_ERROR "windeployqt failed: ${_result}")
+endif()
+foreach(_plugin qwindows qoffscreen)
+  if(NOT EXISTS "${_directory}/platforms/${_plugin}${_suffix}.dll")
+    message(FATAL_ERROR "Missing deployed Qt platform plugin: ${_plugin}${_suffix}.dll")
+  endif()
+endforeach()
+# Prevent fallback to a developer installation's compiled-in plugin search path.
+file(WRITE "${_directory}/qt.conf" "[Paths]\nPrefix=.\nPlugins=.\n")
+# Do not silently distribute Qt without the applicable upstream license texts.
+foreach(_name LICENSE.LGPLv3 LICENSE.GPL3 LICENSE.FDL)
+  if(NOT EXISTS "@MIPS_QT_LICENSE_DIR@/${_name}")
+    message(FATAL_ERROR "Missing Qt license file ${_name}; set MIPS_QT_LICENSE_DIR")
+  endif()
+  file(INSTALL "@MIPS_QT_LICENSE_DIR@/${_name}"
+    DESTINATION "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@CMAKE_INSTALL_DATADIR@/mips-simulator/licenses/Qt5")
+endforeach()

@@ -39,8 +39,14 @@ public:
   // return the token's originating source line
   std::size_t line() const;
 
-  // return the token's value
+  // Return an owning value, preserving the original public API and making
+  // references bound to Token(...).value() safe after the Token is destroyed.
   std::string value() const;
+
+  // Borrow without a copy from a live lvalue Token only. The reference expires
+  // when that Token is changed or destroyed; rvalue borrowing is forbidden.
+  const std::string& valueRef() const & noexcept;
+  const std::string& valueRef() const && = delete;
 
 private:
   TokenType m_type;

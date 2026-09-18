@@ -1,4 +1,5 @@
 #include <QTest>
+#include <QSignalSpy>
 #include <QPlainTextEdit>
 #include <QTableView>
 #include <QLineEdit>
@@ -9,6 +10,15 @@
 #include "virtual_machine_gui.hpp"
 
 #include "test_config.hpp"
+
+namespace {
+bool clickAndWait(QPushButton* button, VirtualMachineGUI& widget) {
+    if (!button || !button->isEnabled()) return false;
+    QSignalSpy completion(&widget, &VirtualMachineGUI::commandCompleted);
+    button->click();
+    return !completion.isEmpty() || completion.wait(2000);
+}
+}
 
 class VirtualMachineGUITest : public QObject {
 	Q_OBJECT
@@ -115,37 +125,37 @@ void VirtualMachineGUITest::test01() {
 	str = modelM->data(modelM->index(15, 1)).toString();
 	QVERIFY2(str == "0xff", "Memory Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Program Counter Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000008", "Register Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000002", "Program Counter Wrong");
 	str = modelR->data(modelR->index(9 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Program Counter Wrong");
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Register Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000004", "Program Counter Wrong");
 	str = modelR->data(modelR->index(11 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffffe", "Register Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Program Counter Wrong");
 	str = modelR->data(modelR->index(12 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffffe", "Register Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000006", "Program Counter Wrong");
 	str = modelR->data(modelR->index(13 + regIndex, 2)).toString();
@@ -156,8 +166,6 @@ void VirtualMachineGUITest::test01() {
 void VirtualMachineGUITest::test02() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test02.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
 	auto memoryViewWidget = widget.findChild<QTableView*>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
@@ -174,19 +182,19 @@ void VirtualMachineGUITest::test02() {
 	qDebug() << "PC = " << str;
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000004", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000002", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(9 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000007", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Program Counter Value Wrong");
 	str = modelM->data(modelM->index(0, 1)).toString();
@@ -198,7 +206,7 @@ void VirtualMachineGUITest::test02() {
 	str = modelM->data(modelM->index(3, 1)).toString();
 	QVERIFY2(str == "0x00", "Memory Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000004", "Program Counter Value Wrong");
 	str = modelM->data(modelM->index(4, 1)).toString();
@@ -210,7 +218,7 @@ void VirtualMachineGUITest::test02() {
 	str = modelM->data(modelM->index(7, 1)).toString();
 	QVERIFY2(str == "0x00", "Memory Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Program Counter Value Wrong");
 	str = modelM->data(modelM->index(8, 1)).toString();
@@ -222,7 +230,7 @@ void VirtualMachineGUITest::test02() {
 	str = modelM->data(modelM->index(11, 1)).toString();
 	QVERIFY2(str == "0x00", "Memory Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000006", "Program Counter Value Wrong");
 	str = modelM->data(modelM->index(12, 1)).toString();
@@ -234,7 +242,7 @@ void VirtualMachineGUITest::test02() {
 	str = modelM->data(modelM->index(15, 1)).toString();
 	QVERIFY2(str == "0x00", "Memory Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000007", "Program Counter Value Wrong");
 	str = modelM->data(modelM->index(16, 1)).toString();
@@ -250,15 +258,11 @@ void VirtualMachineGUITest::test02() {
 void VirtualMachineGUITest::test03() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test03.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -267,25 +271,25 @@ void VirtualMachineGUITest::test03() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000064", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(9 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(11 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000002", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(12 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000004", "Program Counter Value Wrong");
 
@@ -294,15 +298,11 @@ void VirtualMachineGUITest::test03() {
 void VirtualMachineGUITest::test04() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test04.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -312,7 +312,7 @@ void VirtualMachineGUITest::test04() {
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -324,31 +324,31 @@ void VirtualMachineGUITest::test04() {
 	str = modelR->data(modelR->index(15 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(9 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(11 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(12 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(13 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(14 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(15 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffb2e", "Register Value Wrong");
 
@@ -357,15 +357,11 @@ void VirtualMachineGUITest::test04() {
 void VirtualMachineGUITest::test05() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test05.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -374,9 +370,9 @@ void VirtualMachineGUITest::test05() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -390,15 +386,11 @@ void VirtualMachineGUITest::test05() {
 void VirtualMachineGUITest::test06() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test06.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -407,9 +399,9 @@ void VirtualMachineGUITest::test06() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -423,15 +415,11 @@ void VirtualMachineGUITest::test06() {
 void VirtualMachineGUITest::test07() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test07.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -440,9 +428,9 @@ void VirtualMachineGUITest::test07() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -452,9 +440,9 @@ void VirtualMachineGUITest::test07() {
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xffffffff", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000006", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(11 + regIndex, 2)).toString();
@@ -469,15 +457,11 @@ void VirtualMachineGUITest::test07() {
 void VirtualMachineGUITest::test08() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test08.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -486,9 +470,9 @@ void VirtualMachineGUITest::test08() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -498,9 +482,9 @@ void VirtualMachineGUITest::test08() {
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xffffffff", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000006", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(11 + regIndex, 2)).toString();
@@ -514,15 +498,11 @@ void VirtualMachineGUITest::test08() {
 void VirtualMachineGUITest::test09() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test09.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -531,11 +511,11 @@ void VirtualMachineGUITest::test09() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -551,11 +531,11 @@ void VirtualMachineGUITest::test09() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000a", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -571,11 +551,11 @@ void VirtualMachineGUITest::test09() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xffffffff", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000f", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -591,11 +571,11 @@ void VirtualMachineGUITest::test09() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000014", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -616,15 +596,11 @@ void VirtualMachineGUITest::test09() {
 void VirtualMachineGUITest::test10() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test10.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -633,11 +609,11 @@ void VirtualMachineGUITest::test10() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -653,11 +629,11 @@ void VirtualMachineGUITest::test10() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000a", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -677,15 +653,11 @@ void VirtualMachineGUITest::test10() {
 void VirtualMachineGUITest::test11() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test11.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -694,11 +666,11 @@ void VirtualMachineGUITest::test11() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -714,11 +686,11 @@ void VirtualMachineGUITest::test11() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000002", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000a", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -734,11 +706,11 @@ void VirtualMachineGUITest::test11() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000f", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -754,11 +726,11 @@ void VirtualMachineGUITest::test11() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000014", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -779,15 +751,11 @@ void VirtualMachineGUITest::test11() {
 void VirtualMachineGUITest::test12() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test12.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -796,11 +764,11 @@ void VirtualMachineGUITest::test12() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -816,11 +784,11 @@ void VirtualMachineGUITest::test12() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000002", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000a", "Program Counter Value Wrong");
 	str = modelR->data(modelR->index(8 + regIndex, 2)).toString();
@@ -836,7 +804,7 @@ void VirtualMachineGUITest::test12() {
 	str = modelR->data(modelR->index(25 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Register Value Wrong");
 
-	/*stepButtonWidget->click();
+	/*QVERIFY(clickAndWait(stepButtonWidget, widget));
 	QVERIFY2(statusViewWidget->text() == "Ok", "Status Wrong");*/
 
 }
@@ -844,15 +812,11 @@ void VirtualMachineGUITest::test12() {
 void VirtualMachineGUITest::test13() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test13.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -861,13 +825,13 @@ void VirtualMachineGUITest::test13() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000008", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 }
@@ -875,15 +839,11 @@ void VirtualMachineGUITest::test13() {
 void VirtualMachineGUITest::test14() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test14.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -892,13 +852,13 @@ void VirtualMachineGUITest::test14() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffff1", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffff0", "Register Value Wrong");
 }
@@ -906,15 +866,11 @@ void VirtualMachineGUITest::test14() {
 void VirtualMachineGUITest::test15() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test15.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -923,13 +879,13 @@ void VirtualMachineGUITest::test15() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x0000000e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x0000000f", "Register Value Wrong");
 }
@@ -937,15 +893,11 @@ void VirtualMachineGUITest::test15() {
 void VirtualMachineGUITest::test16() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test16.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -954,13 +906,13 @@ void VirtualMachineGUITest::test16() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x00000006", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0x0000000f", "Register Value Wrong");
 }
@@ -968,15 +920,11 @@ void VirtualMachineGUITest::test16() {
 void VirtualMachineGUITest::test17() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test17.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	int regIndex = 3;
 
@@ -985,17 +933,17 @@ void VirtualMachineGUITest::test17() {
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffff3", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffff5", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(10 + regIndex, 2)).toString();
 	QVERIFY2(str == "0xfffffffc", "Register Value Wrong");
 }
@@ -1003,36 +951,32 @@ void VirtualMachineGUITest::test17() {
 void VirtualMachineGUITest::test18() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test18.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	// int regIndex = 3;
 
 	QVERIFY2(statusViewWidget->text() == "Ok", "Status Wrong");
 	// test program counter value
-	str = modelR->data(modelR->index(0, 2)).toString(); \
+	str = modelR->data(modelR->index(0, 2)).toString();
 		QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000001", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000003", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000004", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000000", "Register Value Wrong");
 }
@@ -1040,80 +984,76 @@ void VirtualMachineGUITest::test18() {
 void VirtualMachineGUITest::test19() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test19.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
-	auto memoryViewWidget = widget.findChild<QTableView *>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
 	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 
 	auto modelR = registerViewWidget->model();
-	auto modelM = memoryViewWidget->model();
 	QString str;
 	// int regIndex = 3;
 
 	QVERIFY2(statusViewWidget->text() == "Ok", "Status Wrong");
 	// test program counter value
-	str = modelR->data(modelR->index(0, 2)).toString(); \
+	str = modelR->data(modelR->index(0, 2)).toString();
 		QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000004", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000005", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000007", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000008", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000a", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000b", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000d", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x0000000e", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000010", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000011", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000013", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000014", "Register Value Wrong");
 
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000016", "Register Value Wrong");
 
-	stepButtonWidget->click();
-	stepButtonWidget->click();
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
+	QVERIFY(clickAndWait(stepButtonWidget, widget));
 	str = modelR->data(modelR->index(0, 2)).toString();
 	QVERIFY2(str == "0x00000016", "Register Value Wrong");
 }
@@ -1121,8 +1061,6 @@ void VirtualMachineGUITest::test19() {
 void VirtualMachineGUITest::test20() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test20.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
 	auto memoryViewWidget = widget.findChild<QTableView*>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
@@ -1135,11 +1073,11 @@ void VirtualMachineGUITest::test20() {
 
 	QVERIFY2(statusViewWidget->text() == "Ok", "Status Wrong");
 	// test program counter value
-	str = modelR->data(modelR->index(0, 2)).toString(); \
+	str = modelR->data(modelR->index(0, 2)).toString();
 		QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
 	for (int i = 0; i < 54; i++) {
-		stepButtonWidget->click();
+		QVERIFY(clickAndWait(stepButtonWidget, widget));
 	}
 
 	str = modelM->data(modelM->index(4, 1)).toString();
@@ -1156,12 +1094,9 @@ void VirtualMachineGUITest::test20() {
 void VirtualMachineGUITest::test21() {
 	QString file = QString::fromStdString(TEST_FILE_DIR + "/vm/test20.asm");
 	widget.load(file);
-
-	auto textWidget = widget.findChild<QPlainTextEdit*>("text");
 	auto registerViewWidget = widget.findChild<QTableView*>("registers");
 	auto memoryViewWidget = widget.findChild<QTableView*>("memory");
 	auto statusViewWidget = widget.findChild<QLineEdit*>("status");
-	auto stepButtonWidget = widget.findChild<QPushButton*>("step");
 	auto runButtonWidget = widget.findChild<QPushButton*>("run");
 	auto breakButtonWidget = widget.findChild<QPushButton*>("break");
 
@@ -1175,9 +1110,10 @@ void VirtualMachineGUITest::test21() {
 	str = modelR->data(modelR->index(0, 2)).toString(); 
 	QVERIFY2(str == "0x00000000", "Program Counter Value Wrong");
 
-	runButtonWidget->click();
-	QTest::qSleep(1000);
-	breakButtonWidget->click();
+	QVERIFY(clickAndWait(runButtonWidget, widget));
+	// Wait for observable program progress, not an arbitrary sleep.
+	QTRY_COMPARE(modelM->data(modelM->index(4, 1)).toString(), QString("0x81"));
+	QVERIFY(clickAndWait(breakButtonWidget, widget));
 
 	str = modelM->data(modelM->index(4, 1)).toString();
 	QVERIFY2(str == "0x81", "Memory Value Wrong");

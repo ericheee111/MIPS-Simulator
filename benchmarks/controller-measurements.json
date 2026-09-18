@@ -1,0 +1,64 @@
+{
+  "compiler": "GCC 14.2.0 -O3 -DNDEBUG C++11, same Linux host",
+  "baseline": "8c78610 source bundle (old core/controller before follow-up)",
+  "candidate_source_sha256": {
+    "src/controller.cpp": "0402fe5f179f429af74f1910d38429766e7c3de07fac649986968688dcf91b14",
+    "include/mips/controller.hpp": "3366fd85774bfbe6320a7d76586a474f639c3bb8b6002512326749f8c51d66cf",
+    "benchmarks/controller_benchmark.cpp": "d50cb4fbdd91f1b182e75644a4392ccad08d149bdb0949e13ece09a17899c0ab"
+  },
+  "caveats": "Three synthetic 250 ms trials, full-snapshot baseline versus bounded-register observation; total includes observer thread join. Not a universal speedup or GUI benchmark. Timed workload sleeps are not command synchronization.",
+  "medians": {
+    "before": {
+      "1024/0": {
+        "steps": 21862611,
+        "observations": 0
+      },
+      "1024/4": {
+        "steps": 27379,
+        "observations": 51041
+      },
+      "1048576/0": {
+        "steps": 22274741,
+        "observations": 0
+      },
+      "1048576/4": {
+        "steps": 3523,
+        "observations": 6763
+      },
+      "16777216/0": {
+        "steps": 23017103,
+        "observations": 0
+      },
+      "16777216/4": {
+        "steps": 6541,
+        "observations": 248
+      }
+    },
+    "after": {
+      "1024/0": {
+        "steps": 43741440,
+        "observations": 0
+      },
+      "1024/4": {
+        "steps": 207046,
+        "observations": 50890
+      },
+      "1048576/0": {
+        "steps": 42725760,
+        "observations": 0
+      },
+      "1048576/4": {
+        "steps": 97609,
+        "observations": 38431
+      },
+      "16777216/0": {
+        "steps": 43644928,
+        "observations": 0
+      },
+      "16777216/4": {
+        "steps": 106854,
+        "observations": 47349
+      }
+    }
+  }
+}
