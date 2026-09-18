@@ -84,6 +84,17 @@ Disposition of the three findings:
 After these changes, local strict C++11 Release validation passes **94 Catch
 cases / 4682 assertions**, all 17 CLI cases, the 21 fixtures, packaging and
 Qt-deployment contracts, and the 18-trial benchmark (six CTest targets).
-The new GUI case still requires the revised remote Qt runs. A fresh independent
-review and complete CI matrix must be checked for the revised source candidate;
-the first candidate's green run must not be substituted for those results.
+Candidate `f0e6793012ec532296a824cef48e03f7782bdd7f` then passed all 12 jobs in
+[run 35305822455](https://github.com/ericheee111/MIPS-Simulator/actions/runs/35305822455),
+including the new real GUI reload regression. Independent
+[review 5244175074](https://github.com/ericheee111/MIPS-Simulator/pull/1#pullrequestreview-5244175074)
+(Lite, 94/95 changed files) no longer raised the future-lifetime claim, but correctly
+requested `ProgramCounter` classification for invalid taken jump/branch targets.
+That additional finding is now fixed without changing branch semantics. Tests
+cover `j` and taken/not-taken paths for all six conditional branches, including
+failure atomicity; a not-taken invalid target remains unexecuted and is not a fault.
+
+After this last diagnostic fix, local validation passes **95 Catch cases / 4760
+assertions** and all six CTest targets. The revised source's final independent
+review and full remote matrix must still be checked; the earlier green runs are
+not substituted for a newer source revision.

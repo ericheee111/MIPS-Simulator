@@ -60,6 +60,33 @@ TEST_CASE("Address validation does not swallow Operand or Memory classifications
     }
 }
 
+TEST_CASE("Only taken invalid control-flow targets report ProgramCounter", "[review][machine]") {
+    for (auto opcode : {mips::Opcode::J, mips::Opcode::Beq, mips::Opcode::Bne,
+                        mips::Opcode::Blt, mips::Opcode::Ble, mips::Opcode::Bgt, mips::Opcode::Bge}) {
+        for (bool take : {false, true}) {
+            if (opcode == mips::Opcode::J && !take) continue;
+            auto input = program(opcode);
+            input.instructions[0].target = 99;
+            uint32_t operand = 0; // rs is register zero
+            switch (opcode) {
+            case mips::Opcode::Beq: case mips::Opcode::Bge: operand = take ? 0 : 1; break;
+            case mips::Opcode::Bne: case mips::Opcode::Blt: operand = take ? 1 : 0; break;
+            case mips::Opcode::Ble: operand = take ? 0 : UINT32_MAX; break;
+            case mips::Opcode::Bgt: operand = take ? UINT32_MAX : 0; break;
+            default: break;
+            }
+            input.instructions[0].source = mips::Source::immediate(operand);
+            mips::Machine machine(input);
+            REQUIRE(machine.step() == !take);
+            REQUIRE(machine.diagnostic().code == (take ? mips::FaultCode::ProgramCounter : mips::FaultCode::None));
+            REQUIRE(machine.readPC() == (take ? 0U : 1U));
+            REQUIRE(machine.executedSteps() == (take ? 0U : 1U));
+            REQUIRE(machine.readReg(8) == 0);
+            REQUIRE(machine.readMEM(0,4) == 0x5a5a5a5aU);
+        }
+    }
+}
+
 TEST_CASE("Destroying a consumer future leaves its provider usable", "[review][concurrency]") {
     std::promise<int> provider;
     { auto consumer = provider.get_future(); REQUIRE(consumer.valid()); }

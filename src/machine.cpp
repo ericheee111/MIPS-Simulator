@@ -136,7 +136,10 @@ bool Machine::step() {
             break;
         }
         case Opcode::J:
-            if (ins.target >= code.size()) throw std::out_of_range("jump target out of bounds");
+            if (ins.target >= code.size()) {
+                fault(ins.line, "jump target out of bounds", FaultCode::ProgramCounter);
+                return false;
+            }
             next = ins.target;
             break;
         case Opcode::Beq: case Opcode::Bne: case Opcode::Blt:
@@ -153,7 +156,10 @@ bool Machine::step() {
             default: break;
             }
             if (take) {
-                if (ins.target >= code.size()) throw std::out_of_range("branch target out of bounds");
+                if (ins.target >= code.size()) {
+                    fault(ins.line, "branch target out of bounds", FaultCode::ProgramCounter);
+                    return false;
+                }
                 next = ins.target;
             }
             break;

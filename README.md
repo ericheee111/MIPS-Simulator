@@ -15,7 +15,7 @@ ctest --test-dir build --output-on-failure
 ./build/simmips examples/sum_of_squares.asm
 ```
 
-On Windows, use `build\Debug\simmips.exe` and `ctest --test-dir build -C Debug --output-on-failure`. A runtime-only build uses `-DBUILD_TESTING=OFF`; this also removes the Python requirement. Project warnings are errors by default (`STRICT=ON`).
+With a Visual Studio multi-configuration generator on Windows, use `build\Debug\simmips.exe` and `ctest --test-dir build -C Debug --output-on-failure`. Ninja/MinGW builds place the executable directly in `build\simmips.exe`; ensure the selected compiler's runtime DLL directory precedes unrelated MinGW installations on the test process PATH. A runtime-only build uses `-DBUILD_TESTING=OFF`; this also removes the Python requirement. Project warnings are errors by default (`STRICT=ON`).
 
 ### Qt5 debugger
 
@@ -29,7 +29,7 @@ ctest --test-dir build-gui --output-on-failure
 ./build-gui/simmips --gui examples/sum_of_squares.asm
 ```
 
-`FILE.asm --gui` also works. CTest configures Qt's offscreen platform for GUI tests; an interactive session uses your normal desktop platform. The historical `Vagrantfile` is retained for context, not as the recommended installation path.
+`FILE.asm --gui` also works. CTest uses Qt's offscreen platform for Linux GUI tests and the native Windows platform for Windows GUI tests; isolated Windows package checks exercise both backends. An interactive session uses your normal desktop platform. The historical `Vagrantfile` is retained for context, not as the recommended installation path.
 
 The debugger displays read-only assembly with line numbers, the next instruction's source line, changed-register highlights, and a lazy view over the default 1024 memory bytes. Reset/Reload, memory-address navigation and bounded Run to are available. Loading does **not** execute a hidden instruction. Step waits for a worker acknowledgement; Run executes in the background; Break pauses at an instruction boundary. GUI updates occur only on the GUI thread.
 
@@ -49,7 +49,7 @@ The debugger displays read-only assembly with line numbers, the next instruction
 
 While running, `step` and `print` report `Error: simulation running. Type break to halt.` Run `until end` on the included sum-of-squares example, then `print &0x4`: the result 385 is stored little-endian as `81 01 00 00` at addresses 4–7.
 
-Programs conventionally finish in an explicit self-loop (`end: j end`). There is no implicit successful halt instruction. A step past the instruction array is a runtime error; errors are sticky until another program is loaded.
+Programs conventionally finish in an explicit self-loop (`end: j end`). There is no implicit successful halt instruction. A step past the instruction array is a runtime error; errors are sticky until Reset or another program is loaded.
 
 ## Supported language and execution
 
@@ -88,7 +88,7 @@ ASCII source -> Lexer -> two-pass Parser -> shared immutable Program
 
 The worker alone owns mutable machine state. FIFO commands return futures whose values include the **completed** operation's state and a sequence number. Modern replies contain coherent registers and optional bounded memory windows; legacy full snapshots remain available. Both share only internally sealed immutable code. Public Program constructors defensively copy builders. Pause never removes unrelated messages. Shutdown rejects new requests, drains accepted requests, and joins the worker.
 
-See [architecture and invariants](docs/ARCHITECTURE.md), [migration plan](docs/MODERNIZATION.md), and [validation record](docs/VALIDATION.md).
+See [architecture and invariants](docs/ARCHITECTURE.md), [migration plan](docs/MODERNIZATION.md), [current follow-up validation and independent review](docs/FOLLOWUP_VALIDATION.md), and the [historical first-phase validation](docs/VALIDATION.md).
 
 ## Additional verification
 
